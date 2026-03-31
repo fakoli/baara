@@ -60,6 +60,11 @@ healthMonitor.start();
 console.log(`Baara starting...`);
 console.log(`  Database: ${config.dbPath}`);
 console.log(`  Execution mode: ${config.defaultExecutionMode}`);
+console.log(`  Auth mode: ${config.authMode}`);
+if (!apiKey) {
+  console.warn("\n  ⚠️  [SECURITY] BAARA_API_KEY is not set — /api/* routes are unauthenticated");
+  console.warn("  Set BAARA_API_KEY in .env to enable API authentication\n");
+}
 console.log(`  Server: http://${config.host}:${config.port}`);
 
 export default {

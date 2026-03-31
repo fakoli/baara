@@ -141,10 +141,11 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance) {
           }
         }
       } catch (err) {
+        console.error("[chat] stream error:", err);
         await stream.writeSSE({
           data: JSON.stringify({
             type: "error",
-            message: err instanceof Error ? err.message : String(err),
+            message: "An error occurred processing your request. Please try again.",
           }),
           event: "message",
           id: String(eventId++),

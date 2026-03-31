@@ -82,6 +82,12 @@ async function handleSend(text) {
           scrollToBottom();
           break;
 
+        case 'text_delta':
+          fullText += event.content;
+          contentEl.textContent = fullText;
+          scrollToBottom();
+          break;
+
         case 'tool_use': {
           // Insert tool call card after the assistant message
           const toolEl = renderToolCall(event.name, event.input);
@@ -100,7 +106,10 @@ async function handleSend(text) {
               let display = 'Done';
               if (event.output) {
                 try {
-                  display = JSON.stringify(JSON.parse(event.output), null, 2).slice(0, 200);
+                  display = (typeof event.output === 'string'
+                    ? event.output
+                    : JSON.stringify(event.output, null, 2)
+                  ).slice(0, 200);
                 } catch {
                   display = String(event.output).slice(0, 200);
                 }
@@ -147,7 +156,7 @@ async function handleSend(text) {
 function addMessage(content, type = 'system') {
   const msg = document.createElement('div');
   msg.className = `chat-msg ${type}`;
-  msg.innerHTML = `<div class="msg-content">${type === 'user' ? escapeHtml(content) : content}</div>`;
+  msg.innerHTML = `<div class="msg-content">${escapeHtml(content)}</div>`;
   messagesContainer.appendChild(msg);
   scrollToBottom();
 }
