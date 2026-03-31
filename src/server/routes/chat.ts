@@ -21,8 +21,9 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: S
   // --- List past chat sessions (only Baara-tagged sessions) ---
   app.get("/sessions", async (c) => {
     try {
-      const allSessions = await listSessions({ limit: 200 });
-      // Filter to only sessions tagged as "baara" — excludes Claude Code sessions
+      // Scope to Baara's project directory to avoid picking up Claude Code sessions
+      const allSessions = await listSessions({ dir: process.cwd(), limit: 200 });
+      // Further filter to only sessions tagged as "baara"
       const baaraSessions = allSessions.filter((s: any) => s.tag === "baara");
       return c.json(baaraSessions.slice(0, 50));
     } catch (err) {
@@ -86,6 +87,9 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: S
         const chatContext = gatherChatContext(store, activeProjectId);
         const systemPrompt = buildSystemPrompt(chatContext);
 
+        // Use a consistent cwd so all Baara sessions live under one project directory
+        const baaraCwd = process.cwd();
+
         // Build options — resume session if sessionId is provided
         const options: Record<string, unknown> = {
           systemPrompt,
@@ -97,6 +101,7 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: S
           includePartialMessages: true,
           abortController,
           tools: [],
+          cwd: baaraCwd,
         };
 
         if (sessionId) {
@@ -113,9 +118,12 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: S
 
             // Tag this session as "baara" so it doesn't mix with Claude Code sessions
             if (newSessionId && !sessionId) {
-              tagSession(newSessionId, "baara").catch(err =>
-                log("warn", "chat", "Failed to tag session", { error: String(err) })
-              );
+              // Small delay to let the session file be written before tagging
+              setTimeout(() => {
+                tagSession(newSessionId, "baara", { dir: baaraCwd }).catch(err =>
+                  log("warn", "chat", "Failed to tag session", { error: String(err) })
+                );
+              }, 500);
             }
 
             await stream.writeSSE({
