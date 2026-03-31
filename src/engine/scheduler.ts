@@ -4,6 +4,7 @@
 import { Cron } from "croner";
 import type { Store } from "../db/store.ts";
 import type { Dispatcher } from "./dispatcher.ts";
+import { log } from "../logger.ts";
 
 export class Scheduler {
   private jobs = new Map<string, Cron>();
@@ -16,7 +17,7 @@ export class Scheduler {
       this.register(task.id, task.cronExpression!);
     }
     if (tasks.length > 0) {
-      console.log(`  Scheduler: loaded ${tasks.length} recurring task(s)`);
+      log("info", "scheduler", `Loaded ${tasks.length} recurring task(s)`, { count: tasks.length });
     }
   }
 
@@ -28,7 +29,7 @@ export class Scheduler {
       try {
         await this.dispatcher.dispatch(task);
       } catch (error) {
-        console.error(`Scheduler: failed to dispatch task ${taskId}:`, error);
+        log("error", "scheduler", `Failed to dispatch task ${taskId}`, { taskId, error: String(error) });
       }
     });
     this.jobs.set(taskId, job);

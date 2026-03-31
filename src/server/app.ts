@@ -14,6 +14,7 @@ import type { TemplateService } from "../services/template-service.ts";
 import type { Store } from "../db/store.ts";
 import type { Scheduler } from "../engine/scheduler.ts";
 import type { McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
+import { log } from "../logger.ts";
 
 export interface AppDeps {
   store: Store;
@@ -123,7 +124,7 @@ export function createApp(deps: AppDeps) {
 
   // Global error handler — sanitized, no internal details leaked
   app.onError((err, c) => {
-    console.error("Server error:", err);
+    log("error", "server", "Request error", { error: String(err), path: c.req.path });
     return c.json({ error: "Internal server error" }, 500);
   });
 

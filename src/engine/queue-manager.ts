@@ -4,6 +4,7 @@
 import type { Store } from "../db/store.ts";
 import type { Job } from "../types.ts";
 import { executeJob } from "./executor.ts";
+import { log } from "../logger.ts";
 
 export class QueueManager {
   private running = false;
@@ -16,7 +17,7 @@ export class QueueManager {
     if (this.running) return;
     this.running = true;
     this.pollInterval = setInterval(() => {
-      this.processQueues().catch(err => console.error("QueueManager poll error:", err));
+      this.processQueues().catch(err => log("error", "queue-manager", "Poll error", { error: String(err) }));
     }, this.pollMs);
   }
 

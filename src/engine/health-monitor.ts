@@ -2,6 +2,7 @@
 // Detects stalled/unresponsive jobs by comparing elapsed time to task timeout
 
 import type { Store } from "../db/store.ts";
+import { log } from "../logger.ts";
 
 export class HealthMonitor {
   private interval: ReturnType<typeof setInterval> | null = null;
@@ -13,7 +14,7 @@ export class HealthMonitor {
 
   start(): void {
     this.interval = setInterval(() => {
-      try { this.check(); } catch (err) { console.error("HealthMonitor error:", err); }
+      try { this.check(); } catch (err) { log("error", "health-monitor", "Check failed", { error: String(err) }); }
     }, this.checkIntervalMs);
   }
 

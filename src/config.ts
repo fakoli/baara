@@ -1,5 +1,7 @@
 // Baara — Configuration
 
+import { log } from "./logger.ts";
+
 export interface Config {
   port: number;
   host: string;
@@ -13,7 +15,7 @@ export interface Config {
 export function loadConfig(): Config {
   const anthropicApiKey = process.env["ANTHROPIC_API_KEY"] ?? "";
   if (!anthropicApiKey) {
-    console.warn("Warning: ANTHROPIC_API_KEY not set. Agent SDK tasks will fail.");
+    log("warn", "config", "ANTHROPIC_API_KEY not set - Agent SDK tasks will fail");
   }
 
   return {

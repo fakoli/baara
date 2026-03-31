@@ -6,7 +6,14 @@ import type { Store } from "../../db/store.ts";
 export function systemRoutes(store: Store) {
   const app = new Hono();
 
-  app.get("/health", (c) => c.json({ status: "ok", timestamp: new Date().toISOString() }));
+  app.get("/health", (c) => {
+    try {
+      store.db.query("SELECT 1").get();
+      return c.json({ status: "ok", timestamp: new Date().toISOString(), db: "connected" });
+    } catch {
+      return c.json({ status: "unhealthy", timestamp: new Date().toISOString(), db: "disconnected" }, 503);
+    }
+  });
 
   app.get("/usage", (c) => c.json(store.getUsageStats()));
 

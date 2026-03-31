@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type { TaskService } from "../../services/task-service.ts";
 import type { JobService } from "../../services/job-service.ts";
 import type { Scheduler } from "../../engine/scheduler.ts";
+import { log } from "../../logger.ts";
 
 export function taskRoutes(taskService: TaskService, jobService: JobService, scheduler: Scheduler) {
   const app = new Hono();
@@ -76,7 +77,7 @@ export function taskRoutes(taskService: TaskService, jobService: JobService, sch
         const jobs = jobService.listJobs(task.id, { limit: 1 });
         const latestJob = jobs[0];
         // Don't await the promise — let it complete in background
-        jobPromise.catch(err => console.error("Background run error:", err));
+        jobPromise.catch(err => log("error", "tasks-api", "Background run error", { error: String(err) }));
         return c.json(latestJob || { status: "running", message: "Job started in background" });
       }
       const job = await jobService.runImmediate(c.req.param("id"));

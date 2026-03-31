@@ -7,6 +7,7 @@ import type { McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-
 import { buildSystemPrompt } from "../../chat/system-prompt.ts";
 import { gatherChatContext } from "../../chat/context.ts";
 import type { Store } from "../../db/store.ts";
+import { log } from "../../logger.ts";
 
 export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: Store) {
   const app = new Hono();
@@ -158,7 +159,7 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: S
           }
         }
       } catch (err) {
-        console.error("[chat] stream error:", err);
+        log("error", "chat", "Stream error", { error: String(err) });
         await stream.writeSSE({
           data: JSON.stringify({
             type: "error",
