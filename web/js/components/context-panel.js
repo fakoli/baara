@@ -246,6 +246,25 @@ async function renderTriage(container, state) {
       });
     });
 
+    // Wire up triage card click → navigate to task detail
+    container.querySelectorAll('.triage-job-card').forEach(card => {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', (e) => {
+        // Don't navigate if clicking retry/dismiss buttons
+        if (e.target.closest('.retry-btn') || e.target.closest('.cancel-btn')) return;
+        const jobId = card.dataset.jobId;
+        const job = triageJobs.find(j => j.id === jobId);
+        if (job) {
+          const task = tasks.find(t => t.id === job.taskId);
+          if (task) {
+            state.selectedTask = task;
+            state.contextView = 'task-detail';
+            if (state.onStateChange) state.onStateChange();
+          }
+        }
+      });
+    });
+
     // Wire up dismiss/cancel buttons
     container.querySelectorAll('.cancel-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
