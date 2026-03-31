@@ -9,7 +9,7 @@ const TABS = [
 
 export function render(container, { activeTab, onTabChange }) {
   container.innerHTML = TABS.map(tab => `
-    <button class="tab-btn ${tab.id === activeTab ? 'active' : ''}" data-tab="${tab.id}">
+    <button class="tab-btn ${tab.id === activeTab ? 'active' : ''}" data-tab="${tab.id}" role="tab" aria-selected="${tab.id === activeTab}" aria-label="${tab.label} tab">
       ${tab.label}
     </button>
   `).join('');

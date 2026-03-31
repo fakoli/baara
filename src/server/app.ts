@@ -14,6 +14,7 @@ import type { TemplateService } from "../services/template-service.ts";
 import type { Store } from "../db/store.ts";
 import type { Scheduler } from "../engine/scheduler.ts";
 import type { McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
+import type { JobStatus } from "../types.ts";
 import { log } from "../logger.ts";
 
 export interface AppDeps {
@@ -117,8 +118,8 @@ export function createApp(deps: AppDeps) {
     const rawLimit = c.req.query("limit");
     const limit = rawLimit && !isNaN(Number(rawLimit)) ? Math.min(parseInt(rawLimit, 10), 1000) : undefined;
     const rawStatus = c.req.query("status");
-    const validStatuses = ["pending", "running", "completed", "failed", "triage", "timed_out", "cancelled"];
-    const status = rawStatus && validStatuses.includes(rawStatus) ? rawStatus as any : undefined;
+    const validStatuses: JobStatus[] = ["pending", "running", "completed", "failed", "triage", "timed_out", "cancelled"];
+    const status: JobStatus | undefined = rawStatus && validStatuses.includes(rawStatus as JobStatus) ? rawStatus as JobStatus : undefined;
     return c.json(deps.store.listJobs(taskId, { limit, status }));
   });
 

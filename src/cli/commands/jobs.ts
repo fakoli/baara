@@ -3,11 +3,16 @@
 import { Command } from "commander";
 import type { JobService } from "../../services/job-service.ts";
 import type { Store } from "../../db/store.ts";
+import type { JobStatus } from "../../types.ts";
 import {
   formatJobTable,
   formatJobDetail,
   formatJson,
 } from "../formatter.ts";
+
+const VALID_JOB_STATUSES: JobStatus[] = [
+  "pending", "running", "completed", "failed", "triage", "timed_out", "cancelled",
+];
 
 function resolveTask(store: Store, idOrName: string) {
   return store.getTask(idOrName) ?? store.getTaskByName(idOrName);
@@ -37,10 +42,12 @@ export function registerJobsCommand(
           console.error(`Error: Task not found: ${taskIdOrName}`);
           process.exit(1);
         }
-        const listOpts: { limit?: number; status?: string } = {};
+        const listOpts: { limit?: number; status?: JobStatus } = {};
         if (opts.limit) listOpts.limit = parseInt(opts.limit, 10);
-        if (opts.status) listOpts.status = opts.status;
-        const taskJobs = jobService.listJobs(task.id, listOpts as any);
+        if (opts.status && VALID_JOB_STATUSES.includes(opts.status as JobStatus)) {
+          listOpts.status = opts.status as JobStatus;
+        }
+        const taskJobs = jobService.listJobs(task.id, listOpts);
         if (opts.json) {
           console.log(formatJson(taskJobs));
         } else {

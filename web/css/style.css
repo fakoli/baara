@@ -1550,3 +1550,68 @@ select.form-input {
   color: var(--green);
   background: rgba(34, 197, 94, 0.08);
 }
+
+/* === Additional Focus-Visible States === */
+#chat-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.form-input:focus-visible,
+.form-textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.suggestion:focus-visible,
+.triage-btn:focus-visible,
+.retry-btn-chat:focus-visible,
+.list-row:focus-visible,
+#send-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.modal-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* === Skip to content (screen reader) === */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* === Mobile: collapse context panel on very small screens === */
+@media (max-width: 600px) {
+  #context-panel {
+    width: 0;
+    overflow: hidden;
+    opacity: 0;
+    padding: 0;
+  }
+
+  #resize-handle {
+    display: none;
+  }
+
+  #chat-panel {
+    min-width: 100%;
+  }
+
+  .header-right {
+    gap: 6px;
+  }
+
+  #header {
+    padding: 0 12px;
+  }
+}

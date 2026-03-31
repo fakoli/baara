@@ -9,11 +9,14 @@ import { api } from '../api.js';
 export function showCreateTaskModal(onCreated) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Create Task');
   overlay.innerHTML = `
     <div class="modal">
       <div class="modal-header">
-        <h3>Create Task</h3>
-        <button class="icon-btn modal-close">\u2715</button>
+        <h3 id="modal-title">Create Task</h3>
+        <button class="icon-btn modal-close" aria-label="Close dialog">\u2715</button>
       </div>
       <div class="modal-body">
         <label class="form-label">Name</label>
@@ -54,18 +57,44 @@ export function showCreateTaskModal(onCreated) {
   document.body.appendChild(overlay);
 
   // Close handlers
-  const close = () => overlay.remove();
+  const previouslyFocused = document.activeElement;
+  const close = () => {
+    document.removeEventListener('keydown', onKeydown);
+    overlay.remove();
+    if (previouslyFocused) previouslyFocused.focus();
+  };
   overlay.querySelector('.modal-close').addEventListener('click', close);
   overlay.querySelector('.cancel-btn').addEventListener('click', close);
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
   });
 
-  // Escape key to close
+  // Focus trap + Escape key
   const onKeydown = (e) => {
     if (e.key === 'Escape') {
       close();
-      document.removeEventListener('keydown', onKeydown);
+      return;
+    }
+    // Focus trapping: Tab cycles within modal
+    if (e.key === 'Tab') {
+      const modal = overlay.querySelector('.modal');
+      const focusable = modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
   };
   document.addEventListener('keydown', onKeydown);
@@ -89,7 +118,6 @@ export function showCreateTaskModal(onCreated) {
         priority: parseInt(overlay.querySelector('#modal-priority').value),
       });
       close();
-      document.removeEventListener('keydown', onKeydown);
       if (onCreated) onCreated(task);
     } catch (err) {
       btn.textContent = 'Error';
