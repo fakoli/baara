@@ -1,4 +1,4 @@
-// Fakoli Mini — System API Routes
+// Baara — System API Routes
 
 import { Hono } from "hono";
 import type { Store } from "../../db/store.ts";

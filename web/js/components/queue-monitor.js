@@ -1,4 +1,4 @@
-// Fakoli Mini — Queue Monitor Component
+// Baara — Queue Monitor Component
 
 import { api } from '../api.js';
 import { escapeHtml } from '../utils.js';

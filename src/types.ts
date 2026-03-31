@@ -1,4 +1,4 @@
-// Fakoli Mini — Shared Types
+// Baara — Shared Types
 
 // --- Execution & Priority ---
 

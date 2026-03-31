@@ -1,4 +1,4 @@
-// Fakoli Mini — Tab Bar Component
+// Baara — Tab Bar Component
 
 const TABS = [
   { id: 'overview', label: 'Overview' },

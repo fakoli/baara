@@ -1,4 +1,4 @@
-// Fakoli Mini — Job Service
+// Baara — Job Service
 
 import type { Store } from "../db/store.ts";
 import type { Dispatcher } from "../engine/dispatcher.ts";

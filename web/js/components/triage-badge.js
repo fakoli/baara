@@ -1,4 +1,4 @@
-// Fakoli Mini — Triage Badge Component
+// Baara — Triage Badge Component
 
 import { api } from '../api.js';
 

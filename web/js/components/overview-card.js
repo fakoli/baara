@@ -1,4 +1,4 @@
-// Fakoli Mini — Overview Card Component
+// Baara — Overview Card Component
 
 import { api } from '../api.js';
 import { escapeHtml, timeAgo, statusDotClass, statusLabel, formatTokens, formatDuration } from '../utils.js';

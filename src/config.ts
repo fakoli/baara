@@ -1,4 +1,4 @@
-// Fakoli Mini — Configuration
+// Baara — Configuration
 
 export interface Config {
   port: number;
@@ -18,7 +18,7 @@ export function loadConfig(): Config {
   return {
     port: parseInt(process.env["PORT"] ?? "3000", 10),
     host: process.env["HOST"] ?? "0.0.0.0",
-    dbPath: process.env["DB_PATH"] ?? "data/fakoli.db",
+    dbPath: process.env["DB_PATH"] ?? "data/baara.db",
     staticDir: process.env["STATIC_DIR"] ?? "web",
     defaultExecutionMode:
       (process.env["DEFAULT_EXECUTION_MODE"] as "queued" | "direct") ?? "direct",

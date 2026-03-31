@@ -1,4 +1,4 @@
-// Fakoli Mini — Template API Routes
+// Baara — Template API Routes
 
 import { Hono } from "hono";
 import type { TemplateService } from "../../services/template-service.ts";

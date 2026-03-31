@@ -1,4 +1,4 @@
-// Fakoli Mini — Hono Application
+// Baara — Hono Application
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -25,7 +25,7 @@ export interface AppDeps {
 export function createApp(deps: AppDeps) {
   const app = new Hono();
 
-  app.use(cors({ origin: (origin) => origin.includes("localhost") || origin.includes("127.0.0.1") || origin.includes("10.0.0.") || origin.includes("fakoli-mini") ? origin : "" }));
+  app.use(cors({ origin: (origin) => origin.includes("localhost") || origin.includes("127.0.0.1") || origin.includes("10.0.0.") || origin.includes("baara") ? origin : "" }));
 
   // API routes
   app.route("/api/tasks", taskRoutes(deps.taskService, deps.jobService, deps.scheduler));

@@ -1,4 +1,4 @@
-// Fakoli Mini — CLI Tasks Commands
+// Baara — CLI Tasks Commands
 
 import { Command } from "commander";
 import type { TaskService } from "../../services/task-service.ts";

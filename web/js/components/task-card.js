@@ -1,4 +1,4 @@
-// Fakoli Mini — Task Detail Card Component
+// Baara — Task Detail Card Component
 
 import { api } from '../api.js';
 import {

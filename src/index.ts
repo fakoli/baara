@@ -1,4 +1,4 @@
-// Fakoli Mini — Entry Point
+// Baara — Entry Point
 
 import { loadConfig } from "./config.ts";
 import { initDatabase } from "./db/schema.ts";
@@ -49,7 +49,7 @@ if (config.defaultExecutionMode === "queued") {
 }
 healthMonitor.start();
 
-console.log(`Fakoli Mini starting...`);
+console.log(`Baara starting...`);
 console.log(`  Database: ${config.dbPath}`);
 console.log(`  Execution mode: ${config.defaultExecutionMode}`);
 console.log(`  Server: http://${config.host}:${config.port}`);

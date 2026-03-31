@@ -1,4 +1,4 @@
-// Fakoli Mini — CLI Queues Commands
+// Baara — CLI Queues Commands
 
 import { Command } from "commander";
 import type { Store } from "../../db/store.ts";

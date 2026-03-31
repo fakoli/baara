@@ -1,4 +1,4 @@
-// Fakoli Mini — App Entry Point
+// Baara — App Entry Point
 
 import * as chat from './chat.js';
 import * as contextPanel from './components/context-panel.js';

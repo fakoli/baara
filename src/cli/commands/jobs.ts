@@ -1,4 +1,4 @@
-// Fakoli Mini — CLI Jobs Commands
+// Baara — CLI Jobs Commands
 
 import { Command } from "commander";
 import type { JobService } from "../../services/job-service.ts";

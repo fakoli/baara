@@ -1,4 +1,4 @@
-// Fakoli Mini — Task Service
+// Baara — Task Service
 
 import type { Store } from "../db/store.ts";
 import type { Task, CreateTaskInput, UpdateTaskInput } from "../types.ts";

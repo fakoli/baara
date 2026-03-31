@@ -1,4 +1,4 @@
-// Fakoli Mini — Template Service
+// Baara — Template Service
 
 import type { Store } from "../db/store.ts";
 import type { TaskService } from "./task-service.ts";

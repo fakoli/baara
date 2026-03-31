@@ -1,4 +1,4 @@
-// Fakoli Mini — Database Store
+// Baara — Database Store
 
 import type { Database, SQLQueryBindings } from "bun:sqlite";
 import type {

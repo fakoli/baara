@@ -1,4 +1,4 @@
-// Fakoli Mini — Job List Component
+// Baara — Job List Component
 
 import { api } from '../api.js';
 import {

@@ -1,4 +1,4 @@
-// Fakoli Mini — CLI Entry Point
+// Baara — CLI Entry Point
 
 import { Command } from "commander";
 import { loadConfig } from "../config.ts";
@@ -30,7 +30,7 @@ const templateService = new TemplateService(store, taskService);
 const program = new Command();
 program
   .name("fm")
-  .description("Fakoli Mini — delayed task execution CLI")
+  .description("Baara — delayed task execution CLI")
   .version("0.1.0");
 
 // Register commands

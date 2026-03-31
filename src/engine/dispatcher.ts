@@ -1,4 +1,4 @@
-// Fakoli Mini — Dispatcher
+// Baara — Dispatcher
 // Creates Jobs from Tasks and routes by execution mode (queued vs direct)
 
 import type { Store } from "../db/store.ts";

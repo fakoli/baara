@@ -1,4 +1,4 @@
-// Fakoli Mini — CLI Status Command
+// Baara — CLI Status Command
 
 import { Command } from "commander";
 import type { Store } from "../../db/store.ts";

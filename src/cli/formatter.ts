@@ -1,4 +1,4 @@
-// Fakoli Mini — CLI Output Formatter
+// Baara — CLI Output Formatter
 
 import type { Task, Job, QueueInfo, Template } from "../types.ts";
 
@@ -239,7 +239,7 @@ export function formatStatus(
   usage: { totalJobs: number; totalInputTokens: number; totalOutputTokens: number },
 ): string {
   const lines = [
-    `  Fakoli Mini Status`,
+    `  Baara Status`,
     ``,
     `  Queues:`,
   ];

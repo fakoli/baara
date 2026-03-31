@@ -1,4 +1,4 @@
-// Fakoli Mini — Context Panel Controller
+// Baara — Context Panel Controller
 
 import * as overviewCard from './overview-card.js';
 import * as taskCard from './task-card.js';

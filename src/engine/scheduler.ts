@@ -1,4 +1,4 @@
-// Fakoli Mini — Cron Scheduler
+// Baara — Cron Scheduler
 // Registers recurring tasks with Croner, dispatches on each tick
 
 import { Cron } from "croner";

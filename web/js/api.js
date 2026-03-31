@@ -1,4 +1,4 @@
-// Fakoli Mini — REST API Wrapper
+// Baara — REST API Wrapper
 
 async function request(path, opts = {}) {
   const res = await fetch(path, {

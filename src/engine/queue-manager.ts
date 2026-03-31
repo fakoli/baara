@@ -1,4 +1,4 @@
-// Fakoli Mini — Queue Manager
+// Baara — Queue Manager
 // Processes pending jobs from queues by priority (SQLite-backed)
 
 import type { Store } from "../db/store.ts";

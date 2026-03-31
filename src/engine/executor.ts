@@ -1,4 +1,4 @@
-// Fakoli Mini — Task Executor
+// Baara — Task Executor
 // Runs jobs using the appropriate runtime (Agent SDK, Wasm, raw code)
 
 import { query } from "@anthropic-ai/claude-agent-sdk";

@@ -1,4 +1,4 @@
-// Fakoli Mini — Database Schema & Migrations
+// Baara — Database Schema & Migrations
 
 import { Database } from "bun:sqlite";
 

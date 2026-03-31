@@ -1,4 +1,4 @@
-// Fakoli Mini — Chat Panel
+// Baara — Chat Panel
 
 import { api } from './api.js';
 import { escapeHtml } from './utils.js';
@@ -38,7 +38,7 @@ export function init({ messagesEl, inputEl, onCommandCallback }) {
 function showWelcome() {
   messagesContainer.innerHTML = `
     <div class="chat-welcome">
-      <h3>Welcome to Fakoli Mini</h3>
+      <h3>Welcome to Baara</h3>
       <p>Type a command to get started.</p>
       <code>status</code> system overview<br>
       <code>tasks</code> list all tasks<br>

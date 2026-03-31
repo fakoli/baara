@@ -1,4 +1,4 @@
-// Fakoli Mini — Health Monitor
+// Baara — Health Monitor
 // Detects stalled/unresponsive jobs by comparing elapsed time to task timeout
 
 import type { Store } from "../db/store.ts";

@@ -1,4 +1,4 @@
-// Fakoli Mini — CLI Templates Commands
+// Baara — CLI Templates Commands
 
 import { Command } from "commander";
 import type { TemplateService } from "../../services/template-service.ts";

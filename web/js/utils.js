@@ -1,4 +1,4 @@
-// Fakoli Mini — Shared Utilities
+// Baara — Shared Utilities
 
 export function escapeHtml(str) {
   if (!str) return '';
