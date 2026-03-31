@@ -7,6 +7,7 @@ import {
   listSessions,
   getSessionInfo,
   renameSession,
+  tagSession,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import { buildSystemPrompt } from "../../chat/system-prompt.ts";
@@ -17,11 +18,13 @@ import { log } from "../../logger.ts";
 export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: Store) {
   const app = new Hono();
 
-  // --- List past chat sessions ---
+  // --- List past chat sessions (only Baara-tagged sessions) ---
   app.get("/sessions", async (c) => {
     try {
-      const sessions = await listSessions({ limit: 50 });
-      return c.json(sessions);
+      const allSessions = await listSessions({ limit: 200 });
+      // Filter to only sessions tagged as "baara" — excludes Claude Code sessions
+      const baaraSessions = allSessions.filter((s: any) => s.tag === "baara");
+      return c.json(baaraSessions.slice(0, 50));
     } catch (err) {
       log("error", "chat", "Failed to list sessions", { error: String(err) });
       return c.json({ error: "Could not list sessions" }, 500);
@@ -106,12 +109,21 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: S
         })) {
           // System init message — MCP status, tools available, session ID
           if (msg.type === "system" && "subtype" in msg && msg.subtype === "init") {
+            const newSessionId = msg.session_id;
+
+            // Tag this session as "baara" so it doesn't mix with Claude Code sessions
+            if (newSessionId && !sessionId) {
+              tagSession(newSessionId, "baara").catch(err =>
+                log("warn", "chat", "Failed to tag session", { error: String(err) })
+              );
+            }
+
             await stream.writeSSE({
               data: JSON.stringify({
                 type: "system",
                 tools: msg.tools,
                 mcpServers: msg.mcp_servers,
-                sessionId: msg.session_id,
+                sessionId: newSessionId,
               }),
               event: "message",
               id: String(eventId++),
