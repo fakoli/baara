@@ -70,6 +70,12 @@ export function taskRoutes(taskService: TaskService, jobService: JobService, sch
   app.post("/:id/run", async (c) => {
     const asyncMode = c.req.query("async") === "true";
     try {
+      // Guard: prevent running if task already has a running/pending job
+      const existingJobs = jobService.listJobs(c.req.param("id"), { limit: 5 });
+      const alreadyRunning = existingJobs.find(j => j.status === "running" || j.status === "pending");
+      if (alreadyRunning) {
+        return c.json({ error: "Task already has a running job", jobId: alreadyRunning.id, status: alreadyRunning.status }, 409);
+      }
       if (asyncMode) {
         // Fire-and-forget: return the job immediately, run in background
         const jobPromise = jobService.runImmediate(c.req.param("id"));

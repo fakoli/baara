@@ -18,6 +18,7 @@ export async function render(container, { task, onTaskDeleted, onNavigate }) {
   }
 
   const tools = task.agentConfig?.allowedTools || [];
+  const hasRunningJob = jobs.some(j => j.status === 'running' || j.status === 'pending');
 
   container.innerHTML = `
     <div class="task-detail-header">
@@ -80,7 +81,7 @@ export async function render(container, { task, onTaskDeleted, onNavigate }) {
     ` : ''}
 
     <div class="task-actions">
-      <button class="btn primary" id="task-run-btn">Run Now</button>
+      <button class="btn primary" id="task-run-btn" ${hasRunningJob ? 'disabled' : ''}>${hasRunningJob ? 'Running...' : 'Run Now'}</button>
       <button class="btn" id="task-toggle-btn">${task.enabled ? 'Disable' : 'Enable'}</button>
       <button class="btn danger" id="task-delete-btn">Delete</button>
     </div>
