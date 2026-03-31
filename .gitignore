@@ -37,3 +37,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 data/*.db
 data/*.db-wal
 data/*.db-shm
+
+# Briefing output files
+data/briefings/

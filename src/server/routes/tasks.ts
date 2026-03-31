@@ -61,12 +61,28 @@ export function taskRoutes(taskService: TaskService, jobService: JobService, sch
     }
   });
 
+  // ?async=true returns job immediately with status "running", completes in background
+  // ?async=false (default) blocks until execution finishes
   app.post("/:id/run", async (c) => {
+    const asyncMode = c.req.query("async") === "true";
     try {
+      if (asyncMode) {
+        // Fire-and-forget: return the job immediately, run in background
+        const jobPromise = jobService.runImmediate(c.req.param("id"));
+        // Return a pending job snapshot after a brief delay to let it start
+        await new Promise(r => setTimeout(r, 100));
+        const task = taskService.getTask(c.req.param("id"));
+        if (!task) return c.json({ error: "Task not found" }, 404);
+        const jobs = jobService.listJobs(task.id, { limit: 1 });
+        const latestJob = jobs[0];
+        // Don't await the promise — let it complete in background
+        jobPromise.catch(err => console.error("Background run error:", err));
+        return c.json(latestJob || { status: "running", message: "Job started in background" });
+      }
       const job = await jobService.runImmediate(c.req.param("id"));
       return c.json(job);
     } catch (error) {
-      return c.json({ error: String(error) }, 400);
+      return c.json({ error: "Execution failed" }, 400);
     }
   });
 
