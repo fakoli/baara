@@ -2,11 +2,18 @@
 
 import { Hono } from "hono";
 import type { JobService } from "../../services/job-service.ts";
+import { readLogs } from "../../logger.ts";
 
 export function jobRoutes(jobService: JobService) {
   const app = new Hono();
 
   app.get("/triage", (c) => c.json(jobService.getTriageJobs()));
+
+  // Per-job execution logs
+  app.get("/:id/logs", (c) => {
+    const jobId = c.req.param("id");
+    return c.json(readLogs({ jobId }));
+  });
 
   app.get("/:id", (c) => {
     const job = jobService.getJob(c.req.param("id"));

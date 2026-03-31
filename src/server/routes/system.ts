@@ -3,7 +3,7 @@
 import { Hono } from "hono";
 import type { Store } from "../../db/store.ts";
 import { discoverAll } from "../../integrations/claude-code.ts";
-import { log } from "../../logger.ts";
+import { log, readLogs } from "../../logger.ts";
 
 export function systemRoutes(store: Store) {
   const app = new Hono();
@@ -32,6 +32,15 @@ export function systemRoutes(store: Store) {
     const info = store.getQueueInfo(c.req.param("name"));
     if (!info) return c.json({ error: "Queue not found" }, 404);
     return c.json(info);
+  });
+
+  // Execution logs (JSONL)
+  app.get("/logs", (c) => {
+    const limit = parseInt(c.req.query("limit") ?? "100");
+    const level = c.req.query("level") || undefined;
+    const jobId = c.req.query("jobId") || undefined;
+    const taskName = c.req.query("taskName") || undefined;
+    return c.json(readLogs({ limit: Math.min(limit, 500), level, jobId, taskName }));
   });
 
   // Claude Code integration: discovered plugins and commands

@@ -1,5 +1,7 @@
 // Baara — Entry Point
 
+import { mkdirSync } from "fs";
+import { join } from "path";
 import { loadConfig } from "./config.ts";
 import { initDatabase } from "./db/schema.ts";
 import { Store } from "./db/store.ts";
@@ -12,9 +14,23 @@ import { JobService } from "./services/job-service.ts";
 import { TemplateService } from "./services/template-service.ts";
 import { createApp } from "./server/app.ts";
 import { createBaaraTools } from "./chat/tools.ts";
-import { log } from "./logger.ts";
+import { log, initLogger } from "./logger.ts";
 
 const config = loadConfig();
+
+// Create ~/.nexus directory structure
+mkdirSync(config.nexusDir, { recursive: true });
+mkdirSync(config.logsDir, { recursive: true });
+mkdirSync(config.sessionsDir, { recursive: true });
+mkdirSync(join(config.nexusDir, "briefings"), { recursive: true });
+
+// Backward compat: create data/ if DB_PATH still points there
+if (config.dbPath.startsWith("data/")) {
+  mkdirSync("data", { recursive: true });
+}
+
+// Initialize JSONL execution logger
+initLogger(config.logsDir);
 
 // Database
 const db = initDatabase(config.dbPath);

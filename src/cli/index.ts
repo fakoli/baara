@@ -8,16 +8,19 @@ import { Dispatcher } from "../engine/dispatcher.ts";
 import { TaskService } from "../services/task-service.ts";
 import { JobService } from "../services/job-service.ts";
 import { TemplateService } from "../services/template-service.ts";
+import { initLogger } from "../logger.ts";
 
 import { registerTasksCommand } from "./commands/tasks.ts";
 import { registerJobsCommand } from "./commands/jobs.ts";
 import { registerQueuesCommand } from "./commands/queues.ts";
 import { registerTemplatesCommand } from "./commands/templates.ts";
 import { registerStatusCommand } from "./commands/status.ts";
+import { registerLogsCommand } from "./commands/logs.ts";
 
 // --- Initialize ---
 
 const config = loadConfig();
+initLogger(config.logsDir);
 const db = initDatabase(config.dbPath);
 const store = new Store(db);
 const dispatcher = new Dispatcher(store);
@@ -39,6 +42,7 @@ registerJobsCommand(program, store, jobService);
 registerQueuesCommand(program, store);
 registerTemplatesCommand(program, store, templateService);
 registerStatusCommand(program, store);
+registerLogsCommand(program);
 
 // --- Run ---
 
