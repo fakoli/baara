@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.88",
+    "@chenglou/pretext": "^0.0.3",
     "commander": "^14.0.3",
     "croner": "^10.0.1",
     "hono": "^4.12.9",

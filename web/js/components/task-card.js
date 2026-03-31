@@ -5,6 +5,7 @@ import {
   escapeHtml, timeAgo, statusDotClass, statusLabel,
   formatDuration, formatTokens, priorityLabel, modeLabel, typeLabel,
 } from '../utils.js';
+import * as outputViewer from './output-viewer.js';
 
 export async function render(container, { task, onTaskDeleted, onNavigate }) {
   container.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
@@ -84,7 +85,7 @@ export async function render(container, { task, onTaskDeleted, onNavigate }) {
       ? '<div class="empty-state">No jobs yet</div>'
       : `<div>
           ${jobs.map(job => `
-            <div class="activity-row" data-job-id="${job.id}" style="cursor: default;">
+            <div class="activity-row job-row" data-job-id="${job.id}" style="cursor: pointer;">
               <span class="status-dot ${statusDotClass(job.status)}"></span>
               <span class="activity-task-name">${statusLabel(job.status)}</span>
               <span class="activity-detail">
@@ -141,5 +142,42 @@ export async function render(container, { task, onTaskDeleted, onNavigate }) {
     } catch (err) {
       btn.disabled = false;
     }
+  });
+
+  // Wire up job row click -> expand/collapse output viewer
+  container.querySelectorAll('.job-row').forEach(row => {
+    row.addEventListener('click', async () => {
+      const jobId = row.dataset.jobId;
+      const existingViewer = row.nextElementSibling;
+
+      // Collapse if already expanded
+      if (existingViewer && existingViewer.classList.contains('output-viewer-container')) {
+        existingViewer.remove();
+        return;
+      }
+
+      // Remove any other open viewer in this card
+      container.querySelectorAll('.output-viewer-container').forEach(el => el.remove());
+
+      // Create container and show loading
+      const viewerEl = document.createElement('div');
+      viewerEl.className = 'output-viewer-container';
+      viewerEl.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+      row.after(viewerEl);
+
+      try {
+        const fullJob = await api.getJob(jobId);
+        if (fullJob.output) {
+          outputViewer.render(viewerEl, {
+            output: fullJob.output,
+            title: `Job ${statusLabel(fullJob.status)}`,
+          });
+        } else {
+          viewerEl.innerHTML = '<div class="empty-state">No output for this job</div>';
+        }
+      } catch (err) {
+        viewerEl.innerHTML = `<div class="empty-state">Failed to load job output</div>`;
+      }
+    });
   });
 }
