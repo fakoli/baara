@@ -8,10 +8,17 @@ Baara ("work" in Bambara) — a delayed task execution system built on the Claud
 - TypeScript files use `.ts` extension with `import ... from "./file.ts"` paths.
 - SQLite via `bun:sqlite` (NOT `better-sqlite3` — Bun doesn't support it).
 
+## Data Paths
+- **Home directory:** `~/.nexus/` (set via `NEXUS_DIR` env var)
+- **Database:** `~/.nexus/baara.db` (SQLite, via bun:sqlite)
+- **Execution logs:** `~/.nexus/logs/execution.jsonl` (append-only JSONL)
+
 ## Key Commands
 ```bash
 bun start                          # Start server (0.0.0.0:3000)
 bun run baara tasks list           # CLI
+bun run baara logs                 # View execution logs (JSONL)
+bun run baara logs --level error   # Filter logs by level
 bunx tsc --noEmit                  # Typecheck (run before committing)
 make baara ARGS="tasks list"       # Alternative CLI via Makefile
 ```
@@ -22,9 +29,17 @@ make baara ARGS="tasks list"       # Alternative CLI via Makefile
 - `src/services/` — TaskService, JobService, TemplateService (business logic)
 - `src/server/` — Hono API routes with auth + rate limiting + CSP
 - `src/chat/` — Claude-powered agentic chat (tools, system prompt, SSE endpoint)
-- `src/cli/` — Commander-based CLI (`baara` command)
+- `src/cli/` — Commander-based CLI (`baara` command, includes `baara logs`)
 - `src/integrations/` — Claude Code plugin/command discovery from ~/.claude/
 - `web/` — Vanilla JS frontend (no build step)
+
+## API Endpoints (key additions in v1.2)
+- `GET /api/logs` — System-wide execution logs (query params: `limit`, `level`, `jobId`, `taskName`)
+- `GET /api/jobs/:id/logs` — Per-job execution logs from JSONL
+
+## UI Components (v1.2)
+- **LOGS tab** in context panel — shows execution log entries with level filters (All/Info/Warn/Error)
+- **Create Task modal** — includes Queue dropdown (`#modal-queue`) and "Create & Run Now" button (`.run-now-btn`)
 
 ## Chat Architecture
 - `src/chat/tools.ts` — 17 Baara tools via Agent SDK tool() + createSdkMcpServer()

@@ -26,7 +26,7 @@ test.describe('Create Task Modal', () => {
   test('submits form and creates task', async ({ page }) => {
     await page.goto('/');
     await page.click('#create-task-btn');
-    await page.fill('#modal-name', 'playwright-test-task');
+    await page.fill('#modal-name', `playwright-test-${Date.now()}`);
     await page.fill('#modal-prompt', 'echo hello from playwright');
     await page.click('.create-btn');
     // Modal should close after successful creation

@@ -49,8 +49,9 @@ bun run src/cli/index.ts status
 - **14 custom tools** — Exposed via in-process MCP server (create_task, run_task, list_jobs, etc.). Claude picks the right tool for every request.
 - **SSE streaming** — Real-time streamed responses from Claude, including tool use and results.
 - **Dual auth modes** — Use your Claude subscription (free within limits) or an API key (per-token billing).
-- **Collapsible context panel** — Chat is the primary interface; tasks, jobs, and queues live in a collapsible side panel that auto-updates on tool calls.
-- **[+ Create Task] button** — Manual task creation as a fallback alongside chat.
+- **Collapsible context panel** — Chat is the primary interface; tasks, jobs, queues, and logs live in a collapsible side panel that auto-updates on tool calls.
+- **[+ Create Task] button** — Manual task creation with queue selection and "Create & Run Now" option.
+- **JSONL execution logging** — Every task execution is logged to `~/.nexus/logs/execution.jsonl` with level, timestamp, task name, and job ID. Viewable in the LOGS tab, via API, or CLI (`baara logs`).
 - **Priority queues** — P0 (critical) through P3 (background) with FIFO tie-breaking.
 - **Dual execution modes** — Queued (full pipeline) or Direct (immediate, ideal for Mac mini).
 - **Agent SDK integration** — Built-in tools (WebSearch, WebFetch, Bash), MCP servers, subagents.
@@ -106,6 +107,9 @@ baara jobs retry <job-id>           # Re-dispatch a triaged job
 baara queues list                   # Queue depths
 baara status                        # Full system overview
 baara templates list                # Browse templates
+baara logs                          # View execution logs
+baara logs --level error            # Filter by level
+baara logs --job <id>               # Filter by job ID
 ```
 
 ## API Endpoints
@@ -120,8 +124,25 @@ baara templates list                # Browse templates
 | GET | `/api/tasks/:id/jobs` | Job history |
 | GET | `/api/jobs/triage` | Triaged jobs |
 | GET | `/api/queues` | Queue status |
+| GET | `/api/logs` | System-wide execution logs |
+| GET | `/api/jobs/:id/logs` | Per-job execution logs |
 | GET | `/api/status` | System overview |
 | GET | `/api/health` | Health check |
+
+## Data Storage
+
+All Baara data lives under `~/.nexus/` (configurable via `NEXUS_DIR` env var):
+
+```
+~/.nexus/
+├── baara.db              # SQLite database (tasks, jobs, queues, sessions)
+├── logs/
+│   └── execution.jsonl   # Append-only execution logs (JSONL format)
+└── ...
+```
+
+- **Database** — SQLite via `bun:sqlite`. Override location with `DB_PATH` env var.
+- **Execution logs** — One JSON object per line with `ts`, `level`, `msg`, `taskName`, `jobId` fields. Queryable via `GET /api/logs`, `GET /api/jobs/:id/logs`, or `baara logs` CLI.
 
 ## Tech Stack
 
