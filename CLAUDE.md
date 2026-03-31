@@ -135,6 +135,16 @@ BAARA_AUTH_MODE=subscription   # Default: Claude subscription via CLI (free with
 BAARA_AUTH_MODE=api_key        # Uses ANTHROPIC_API_KEY (per-token billing)
 ```
 
+## v1.3.0 Features
+
+- **Task creation wizard** (3-step): Basics -> Execution -> Schedule & Tools. Replaces the single-modal flow.
+- **Plan mode**: Toggle in chat input prepends planning instructions so Claude presents a numbered plan before executing.
+- **System prompt settings**: Configurable system prompt saved in SQLite settings table, merged into chat context.
+- **Tool selection per-task**: Checkboxes on wizard step 3 let users pick which tools (WebSearch, Bash, etc.) a task may use.
+- **Cron presets**: Dropdown with common schedules + human-readable preview for custom expressions.
+- **Slash command autocomplete**: Tab-completion in chat input from discovered Claude Code plugins.
+- **Isolation level dropdown**: Future-ready UI for Docker/Wasm sandboxing.
+
 ## Before Committing
 
 1. `bunx tsc --noEmit` — zero errors

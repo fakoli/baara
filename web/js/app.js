@@ -6,8 +6,9 @@ import * as tabBar from './components/tab-bar.js';
 import * as triageBadge from './components/triage-badge.js';
 import * as chatSessions from './components/chat-sessions.js';
 import * as projectSwitcher from './components/project-switcher.js';
-import { showCreateTaskModal } from './components/create-task-modal.js';
+import { showCreateTaskWizard } from './components/create-task-wizard.js';
 import { showSettingsPanel } from './components/settings-panel.js';
+import { togglePlanMode } from './chat.js';
 
 // --- State ---
 const state = {
@@ -181,7 +182,7 @@ function initResize() {
 // --- Create Task Button ---
 
 function handleCreateTask() {
-  showCreateTaskModal((task, opts) => {
+  showCreateTaskWizard((task, opts) => {
     if (opts && opts.ranNow) {
       // Show jobs view to see the running job
       state.contextView = 'jobs';
@@ -259,6 +260,12 @@ function init() {
   sessionsBtn.addEventListener('click', () => {
     chatSessions.toggle(chat.getSessionId());
   });
+
+  // Plan mode button
+  const planModeBtn = document.getElementById('plan-mode-btn');
+  if (planModeBtn) {
+    planModeBtn.addEventListener('click', () => togglePlanMode());
+  }
 
   // Settings button
   settingsBtn.addEventListener('click', () => {

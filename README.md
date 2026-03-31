@@ -50,7 +50,10 @@ bun run src/cli/index.ts status
 - **SSE streaming** — Real-time streamed responses from Claude, including tool use and results.
 - **Dual auth modes** — Use your Claude subscription (free within limits) or an API key (per-token billing).
 - **Collapsible context panel** — Chat is the primary interface; tasks, jobs, queues, and logs live in a collapsible side panel that auto-updates on tool calls.
-- **[+ Create Task] button** — Manual task creation with queue selection and "Create & Run Now" option.
+- **Multi-step task creation wizard** — 3-step wizard (Basics, Execution, Schedule & Tools) with queue selection, cron presets, and "Create & Run Now" option.
+- **Plan mode** — Toggle plan mode in chat for structured execution planning. Claude presents a numbered plan before taking action.
+- **Configurable system prompt** — Custom system prompt saved in settings, merged into every chat context.
+- **Per-task tool selection** — Choose which tools (WebSearch, Bash, Read, Write, etc.) each task is allowed to use.
 - **JSONL execution logging** — Every task execution is logged to `~/.nexus/logs/execution.jsonl` with level, timestamp, task name, and job ID. Viewable in the LOGS tab, via API, or CLI (`baara logs`).
 - **Priority queues** — P0 (critical) through P3 (background) with FIFO tie-breaking.
 - **Dual execution modes** — Queued (full pipeline) or Direct (immediate, ideal for Mac mini).
