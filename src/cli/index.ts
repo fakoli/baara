@@ -29,7 +29,7 @@ const templateService = new TemplateService(store, taskService);
 
 const program = new Command();
 program
-  .name("fm")
+  .name("baara")
   .description("Baara — delayed task execution CLI")
   .version("0.1.0");
 

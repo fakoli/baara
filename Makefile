@@ -1,9 +1,9 @@
-.PHONY: start cli typecheck clean
+.PHONY: start baara typecheck clean
 
 start:
 	bun run src/index.ts
 
-cli:
+baara:
 	bun run src/cli/index.ts $(ARGS)
 
 typecheck:
