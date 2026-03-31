@@ -105,16 +105,19 @@ export const api = {
   },
 
   // Chat (SSE streaming)
-  async chatStream(message, onEvent) {
+  async chatStream(message, onEvent, { sessionId } = {}) {
+    const body = { message };
+    if (sessionId) body.sessionId = sessionId;
+
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
-      const body = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(body.error || `Chat failed: ${response.status}`);
+      const errBody = await response.json().catch(() => ({ error: response.statusText }));
+      throw new Error(errBody.error || `Chat failed: ${response.status}`);
     }
 
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();

@@ -10,7 +10,10 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance) {
   const app = new Hono();
 
   app.post("/", async (c) => {
-    const { message } = await c.req.json<{ message: string }>();
+    const { message, sessionId } = await c.req.json<{
+      message: string;
+      sessionId?: string;
+    }>();
     if (!message || typeof message !== "string") {
       return c.json({ error: "message is required" }, 400);
     }
@@ -25,27 +28,35 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance) {
       });
 
       try {
+        // Build options — resume session if sessionId is provided
+        const options: Record<string, unknown> = {
+          systemPrompt: CHAT_SYSTEM_PROMPT,
+          mcpServers: { baara: baaraServer },
+          permissionMode: "bypassPermissions",
+          allowDangerouslySkipPermissions: true,
+          maxTurns: 20,
+          maxBudgetUsd: 0.50,
+          includePartialMessages: true,
+          abortController,
+          tools: [],
+        };
+
+        if (sessionId) {
+          options.resume = sessionId;
+        }
+
         for await (const msg of query({
           prompt: message,
-          options: {
-            systemPrompt: CHAT_SYSTEM_PROMPT,
-            mcpServers: { baara: baaraServer },
-            permissionMode: "bypassPermissions",
-            allowDangerouslySkipPermissions: true,
-            maxTurns: 20,
-            maxBudgetUsd: 0.50,
-            includePartialMessages: true,
-            abortController,
-            tools: [],
-          },
+          options: options as any,
         })) {
-          // System init message — MCP status, tools available
+          // System init message — MCP status, tools available, session ID
           if (msg.type === "system" && "subtype" in msg && msg.subtype === "init") {
             await stream.writeSSE({
               data: JSON.stringify({
                 type: "system",
                 tools: msg.tools,
                 mcpServers: msg.mcp_servers,
+                sessionId: msg.session_id,
               }),
               event: "message",
               id: String(eventId++),

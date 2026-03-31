@@ -27,6 +27,7 @@ const panelToggleBtn = document.getElementById('panel-toggle');
 const contextPanelEl = document.getElementById('context-panel');
 const resizeHandle = document.getElementById('resize-handle');
 const createTaskBtn = document.getElementById('create-task-btn');
+const newChatBtn = document.getElementById('new-chat-btn');
 
 // --- Render Loop ---
 
@@ -189,6 +190,25 @@ function init() {
 
   // Create Task button
   createTaskBtn.addEventListener('click', handleCreateTask);
+
+  // New Chat button
+  newChatBtn.addEventListener('click', () => {
+    chat.startNewChat();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Cmd+Shift+N — new chat
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'N') {
+      e.preventDefault();
+      chat.startNewChat();
+    }
+    // Cmd+Shift+O — toggle panel
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'O') {
+      e.preventDefault();
+      togglePanel();
+    }
+  });
 
   // Triage badge polling
   triageBadge.startPolling(triageBadgeEl, () => {

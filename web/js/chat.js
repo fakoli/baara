@@ -8,6 +8,11 @@ let messagesContainer = null;
 let inputElement = null;
 let onToolCall = null;
 let isStreaming = false;
+let sessionId = null;
+
+// Session persistence keys
+const SESSION_ID_KEY = 'baara_session_id';
+const CHAT_HISTORY_KEY = 'baara_chat_history';
 
 /**
  * Initialize the chat panel.
@@ -21,7 +26,8 @@ export function init({ messagesEl, inputEl, onToolCallCallback }) {
   inputElement = inputEl;
   onToolCall = onToolCallCallback || null;
 
-  showWelcome();
+  // Restore session from sessionStorage
+  restoreSession();
 
   inputElement.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -76,6 +82,14 @@ async function handleSend(text) {
   try {
     await api.chatStream(text, (event) => {
       switch (event.type) {
+        case 'system':
+          // Capture session ID from the init message
+          if (event.sessionId && !sessionId) {
+            sessionId = event.sessionId;
+            sessionStorage.setItem(SESSION_ID_KEY, sessionId);
+          }
+          break;
+
         case 'text':
           fullText += event.content;
           contentEl.textContent = fullText;
@@ -137,7 +151,7 @@ async function handleSend(text) {
         case 'done':
           break;
       }
-    });
+    }, { sessionId });
   } catch (err) {
     addMessage(`Error: ${escapeHtml(err.message)}`, 'error');
   } finally {
@@ -150,6 +164,9 @@ async function handleSend(text) {
     if (!fullText && !assistantMsg.nextElementSibling) {
       assistantMsg.remove();
     }
+
+    // Persist chat history to sessionStorage
+    saveChatHistory();
   }
 }
 
@@ -165,6 +182,44 @@ function scrollToBottom() {
   requestAnimationFrame(() => {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   });
+}
+
+// --- Session Persistence ---
+
+function saveChatHistory() {
+  try {
+    sessionStorage.setItem(CHAT_HISTORY_KEY, messagesContainer.innerHTML);
+  } catch {
+    // sessionStorage quota exceeded — silently ignore
+  }
+}
+
+function restoreSession() {
+  const savedSessionId = sessionStorage.getItem(SESSION_ID_KEY);
+  const savedHistory = sessionStorage.getItem(CHAT_HISTORY_KEY);
+
+  if (savedSessionId && savedHistory) {
+    sessionId = savedSessionId;
+    messagesContainer.innerHTML = savedHistory;
+    scrollToBottom();
+  } else {
+    showWelcome();
+  }
+}
+
+/**
+ * Start a new chat session — clears history and session ID.
+ */
+export function startNewChat() {
+  sessionId = null;
+  sessionStorage.removeItem(SESSION_ID_KEY);
+  sessionStorage.removeItem(CHAT_HISTORY_KEY);
+  showWelcome();
+  if (inputElement) {
+    inputElement.value = '';
+    inputElement.style.height = 'auto';
+    inputElement.focus();
+  }
 }
 
 /**

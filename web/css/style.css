@@ -1210,3 +1210,26 @@ select.form-input {
   top: 8px;
   z-index: 5;
 }
+
+/* === New Chat Button === */
+#new-chat-btn {
+  color: var(--text-dim);
+  transition: color 0.15s, background 0.15s;
+}
+
+#new-chat-btn:hover {
+  color: var(--accent);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+/* === Keyboard Shortcut Hints === */
+.kbd-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 4px;
+}
