@@ -3,6 +3,7 @@
 import { api } from './api.js';
 import { escapeHtml } from './utils.js';
 import { renderToolCall } from './components/tool-call.js';
+import * as commandPalette from './components/command-palette.js';
 
 let messagesContainer = null;
 let inputElement = null;
@@ -40,18 +41,44 @@ export function init({ messagesEl, inputEl, onToolCallCallback, getActiveProject
   // Restore session from sessionStorage
   restoreSession();
 
+  // Initialize command palette for slash autocomplete
+  commandPalette.init({
+    containerEl: document.querySelector('#chat-input-area'),
+    onSelectCallback: (item) => {
+      // Replace the current /query with the full command name
+      inputElement.value = '/' + item.fullName + ' ';
+      inputElement.focus();
+      // Trigger input event for auto-resize
+      inputElement.dispatchEvent(new Event('input'));
+    },
+  });
+
   inputElement.addEventListener('keydown', (e) => {
+    // Let command palette handle keys first
+    if (commandPalette.handleKey(e)) return;
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       triggerSend();
     }
   });
 
-  // Auto-resize textarea as user types
+  // Auto-resize textarea as user types + slash command detection
   inputElement.addEventListener('input', () => {
     inputElement.style.height = 'auto';
     inputElement.style.height = Math.min(inputElement.scrollHeight, 120) + 'px';
     updateSendButton();
+
+    // Slash command detection
+    const text = inputElement.value;
+    const lastLine = text.split('\n').pop() || '';
+
+    if (lastLine.startsWith('/') && lastLine.length >= 1) {
+      const query = lastLine.slice(1); // Remove the /
+      commandPalette.show(query);
+    } else {
+      commandPalette.hide();
+    }
   });
 
   // Show/hide input hint on focus
@@ -79,6 +106,7 @@ function triggerSend() {
   if (!text) return;
   inputElement.value = '';
   inputElement.style.height = 'auto';
+  commandPalette.hide();
   updateSendButton();
   handleSend(text);
 }
@@ -122,7 +150,23 @@ async function handleSend(text) {
   // Store for retry
   lastSentMessage = text;
 
+  // If starts with /, treat as a skill/command invocation
+  if (text.startsWith('/')) {
+    const commandName = text.slice(1).split(' ')[0];
+    const args = text.slice(1 + commandName.length).trim();
+    addMessage(text, 'user');
+    addMessage(`Running /${escapeHtml(commandName)}...`, 'system');
+    // Send to chat as a prompt that Claude's tools will handle
+    const prompt = `Run the slash command or skill "/${commandName}"${args ? ` with arguments: ${args}` : ''}`;
+    await streamChatMessage(prompt);
+    return;
+  }
+
   addMessage(text, 'user');
+  await streamChatMessage(text);
+}
+
+async function streamChatMessage(text) {
 
   isStreaming = true;
   inputElement.disabled = true;

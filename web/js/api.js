@@ -159,6 +159,18 @@ export const api = {
     });
   },
 
+  // Commands (slash autocomplete)
+  async getCommands(opts = {}) {
+    const params = new URLSearchParams();
+    if (opts.type) params.set('type', opts.type);
+    if (opts.search) params.set('search', opts.search);
+    return request(`/api/commands?${params}`);
+  },
+
+  async getCommandContent(type, name) {
+    return request(`/api/commands/${type}/${encodeURIComponent(name)}/content`);
+  },
+
   // Chat (SSE streaming)
   async chatStream(message, onEvent, { sessionId, activeProjectId } = {}) {
     const body = { message };

@@ -2296,3 +2296,94 @@ select.form-input:not(.modal select.form-input) {
   max-height: 150px;
   overflow-y: auto;
 }
+
+/* === Command Palette (Slash Autocomplete) === */
+.command-palette {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 50;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-bottom: 1px solid rgba(38, 38, 38, 0.3);
+}
+
+.palette-item:last-child { border-bottom: none; }
+
+.palette-item:hover,
+.palette-item.selected {
+  background: var(--card-hover);
+}
+
+.palette-item.selected {
+  border-left: 2px solid var(--accent);
+  padding-left: 10px;
+}
+
+.palette-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.palette-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.palette-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.palette-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-type {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.palette-hint {
+  font-size: 10px;
+  color: var(--accent);
+  background: rgba(59, 130, 246, 0.1);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .command-palette {
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+}
