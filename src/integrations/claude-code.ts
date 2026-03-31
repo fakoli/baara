@@ -2,8 +2,8 @@
 // Reads ~/.claude/plugins/ and ~/.claude/commands/ to expose installed
 // plugins, skills, agents, and custom slash commands within Baara.
 
-import { readdir, readFile } from "fs/promises";
-import { join } from "path";
+import { readdir, readFile, stat } from "fs/promises";
+import { join, basename } from "path";
 import { homedir } from "os";
 import { log } from "../logger.ts";
 
@@ -20,9 +20,41 @@ export interface DiscoveredPlugin {
   keywords: string[];
 }
 
+export interface DiscoveredSkill {
+  name: string;
+  fullName: string;          // "plugin:skill-name" for disambiguation
+  pluginName: string;
+  description: string;
+  triggers: string[];        // keyword patterns from YAML frontmatter
+  version?: string;
+  path: string;              // Full path to SKILL.md
+}
+
+export interface DiscoveredCommand {
+  name: string;
+  fullName: string;          // "plugin:command" or just "command" for custom
+  source: "plugin" | "custom";
+  pluginName?: string;
+  description: string;
+  argumentHint?: string;
+  path: string;
+}
+
+export interface DiscoveredAgent {
+  name: string;
+  fullName: string;          // "plugin:agent-name"
+  pluginName: string;
+  description: string;
+  model?: string;
+  path: string;
+}
+
 export interface ClaudeCodeIntegration {
   plugins: DiscoveredPlugin[];
   commands: string[];
+  skills: DiscoveredSkill[];
+  deepCommands: DiscoveredCommand[];
+  agents: DiscoveredAgent[];
   discoveredAt: string;
 }
 
@@ -46,6 +78,31 @@ interface PluginManifest {
   version?: string;
   author?: { name?: string; email?: string; url?: string } | string;
   keywords?: string[];
+}
+
+// --- YAML Frontmatter Parser ---
+
+export function parseFrontmatter(content: string): Record<string, string | string[]> {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+  const lines = match[1]!.split("\n");
+  const result: Record<string, string | string[]> = {};
+  let currentKey = "";
+  for (const line of lines) {
+    const kvMatch = line.match(/^(\w[\w-]*)\s*:\s*(.+)/);
+    if (kvMatch) {
+      currentKey = kvMatch[1]!;
+      let value = kvMatch[2]!.trim();
+      if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+      result[currentKey] = value;
+    } else if (line.match(/^\s+-\s+/) && currentKey) {
+      // Array item
+      if (!Array.isArray(result[currentKey])) result[currentKey] = [];
+      const itemMatch = line.match(/^\s+-\s+(?:keyword:\s+)?(.+)/);
+      if (itemMatch) (result[currentKey] as string[]).push(itemMatch[1]!.trim());
+    }
+  }
+  return result;
 }
 
 // --- Discovery Functions ---
@@ -123,17 +180,232 @@ export async function discoverCommands(): Promise<string[]> {
   }
 }
 
+/** Check if a path is a directory, returning false on error. */
+async function isDirectory(path: string): Promise<boolean> {
+  try {
+    const s = await stat(path);
+    return s.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Full discovery: plugins + commands in a single call.
+ * Discover skills from all installed plugins.
+ * Traverses <installPath>/skills/ for each plugin,
+ * reads SKILL.md in each skill subdirectory, and parses YAML frontmatter.
+ */
+export async function discoverSkills(): Promise<DiscoveredSkill[]> {
+  const plugins = await discoverPlugins();
+  const skills: DiscoveredSkill[] = [];
+
+  for (const plugin of plugins) {
+    const skillsDir = join(plugin.installPath, "skills");
+    if (!(await isDirectory(skillsDir))) continue;
+
+    let entries: string[];
+    try {
+      entries = await readdir(skillsDir);
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const entryPath = join(skillsDir, entry);
+      if (!(await isDirectory(entryPath))) continue;
+
+      const skillMdPath = join(entryPath, "SKILL.md");
+      let content: string;
+      try {
+        content = await readFile(skillMdPath, "utf-8");
+      } catch {
+        // No SKILL.md — skip this directory
+        continue;
+      }
+
+      const fm = parseFrontmatter(content);
+      const name = (typeof fm["name"] === "string" ? fm["name"] : entry) || entry;
+      const description = typeof fm["description"] === "string" ? fm["description"] : "";
+      const triggers = Array.isArray(fm["triggers"]) ? fm["triggers"] : [];
+      const version = typeof fm["version"] === "string" ? fm["version"] : undefined;
+
+      skills.push({
+        name,
+        fullName: `${plugin.name}:${name}`,
+        pluginName: plugin.name,
+        description,
+        triggers,
+        version,
+        path: skillMdPath,
+      });
+    }
+  }
+
+  return skills;
+}
+
+/**
+ * Discover agents from all installed plugins.
+ * Traverses <installPath>/agents/ for each plugin,
+ * reads .md files and parses YAML frontmatter.
+ */
+export async function discoverAgents(): Promise<DiscoveredAgent[]> {
+  const plugins = await discoverPlugins();
+  const agents: DiscoveredAgent[] = [];
+
+  for (const plugin of plugins) {
+    const agentsDir = join(plugin.installPath, "agents");
+    if (!(await isDirectory(agentsDir))) continue;
+
+    let entries: string[];
+    try {
+      entries = await readdir(agentsDir);
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (!entry.endsWith(".md")) continue;
+
+      const agentPath = join(agentsDir, entry);
+      let content: string;
+      try {
+        content = await readFile(agentPath, "utf-8");
+      } catch {
+        continue;
+      }
+
+      const fm = parseFrontmatter(content);
+      const agentBaseName = entry.replace(/\.md$/, "");
+      const name = (typeof fm["name"] === "string" ? fm["name"] : agentBaseName) || agentBaseName;
+      const description = typeof fm["description"] === "string" ? fm["description"] : "";
+      const model = typeof fm["model"] === "string" ? fm["model"] : undefined;
+
+      agents.push({
+        name,
+        fullName: `${plugin.name}:${name}`,
+        pluginName: plugin.name,
+        description,
+        model,
+        path: agentPath,
+      });
+    }
+  }
+
+  return agents;
+}
+
+/**
+ * Deep command discovery: reads both custom commands from ~/.claude/commands/
+ * and plugin commands from <installPath>/commands/.
+ * Parses YAML frontmatter for description and argument-hint.
+ */
+export async function discoverCommandsDeep(): Promise<DiscoveredCommand[]> {
+  const commands: DiscoveredCommand[] = [];
+
+  // 1. Custom commands from ~/.claude/commands/*.md
+  const customDir = join(homedir(), ".claude", "commands");
+  try {
+    const files = await readdir(customDir);
+    for (const file of files) {
+      if (!file.endsWith(".md")) continue;
+
+      const filePath = join(customDir, file);
+      let content: string;
+      try {
+        content = await readFile(filePath, "utf-8");
+      } catch {
+        continue;
+      }
+
+      const fm = parseFrontmatter(content);
+      const cmdName = file.replace(/\.md$/, "");
+      const name = (typeof fm["name"] === "string" ? fm["name"] : cmdName) || cmdName;
+      const description = typeof fm["description"] === "string" ? fm["description"] : "";
+      const argumentHint = typeof fm["argument-hint"] === "string" ? fm["argument-hint"] : undefined;
+
+      commands.push({
+        name,
+        fullName: name,
+        source: "custom",
+        description,
+        argumentHint,
+        path: filePath,
+      });
+    }
+  } catch {
+    // Custom commands dir not found — skip
+  }
+
+  // 2. Plugin commands from <installPath>/commands/*.md
+  const plugins = await discoverPlugins();
+  for (const plugin of plugins) {
+    const commandsDir = join(plugin.installPath, "commands");
+    if (!(await isDirectory(commandsDir))) continue;
+
+    let files: string[];
+    try {
+      files = await readdir(commandsDir);
+    } catch {
+      continue;
+    }
+
+    for (const file of files) {
+      if (!file.endsWith(".md")) continue;
+
+      const filePath = join(commandsDir, file);
+      let content: string;
+      try {
+        content = await readFile(filePath, "utf-8");
+      } catch {
+        continue;
+      }
+
+      const fm = parseFrontmatter(content);
+      const cmdName = file.replace(/\.md$/, "");
+      const name = (typeof fm["name"] === "string" ? fm["name"] : cmdName) || cmdName;
+      const description = typeof fm["description"] === "string" ? fm["description"] : "";
+      const argumentHint = typeof fm["argument-hint"] === "string" ? fm["argument-hint"] : undefined;
+
+      commands.push({
+        name,
+        fullName: `${plugin.name}:${name}`,
+        source: "plugin",
+        pluginName: plugin.name,
+        description,
+        argumentHint,
+        path: filePath,
+      });
+    }
+  }
+
+  return commands;
+}
+
+/**
+ * Read and return the full content of a skill/command/agent markdown file.
+ */
+export async function getSkillContent(path: string): Promise<string> {
+  return readFile(path, "utf-8");
+}
+
+/**
+ * Full discovery: plugins + commands + skills + agents in a single call.
  */
 export async function discoverAll(): Promise<ClaudeCodeIntegration> {
-  const [plugins, commands] = await Promise.all([
+  const [plugins, commands, skills, deepCommands, agents] = await Promise.all([
     discoverPlugins(),
     discoverCommands(),
+    discoverSkills(),
+    discoverCommandsDeep(),
+    discoverAgents(),
   ]);
   return {
     plugins,
     commands,
+    skills,
+    deepCommands,
+    agents,
     discoveredAt: new Date().toISOString(),
   };
 }

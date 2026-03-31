@@ -2,7 +2,18 @@
 
 import { Hono } from "hono";
 import type { Store } from "../../db/store.ts";
-import { discoverAll } from "../../integrations/claude-code.ts";
+import {
+  discoverAll,
+  discoverSkills,
+  discoverCommandsDeep,
+  discoverAgents,
+  getSkillContent,
+} from "../../integrations/claude-code.ts";
+import type {
+  DiscoveredSkill,
+  DiscoveredCommand,
+  DiscoveredAgent,
+} from "../../integrations/claude-code.ts";
 import { log, readLogs } from "../../logger.ts";
 
 export function systemRoutes(store: Store) {
@@ -51,6 +62,107 @@ export function systemRoutes(store: Store) {
     } catch (err) {
       log("error", "integrations", "Claude Code discovery failed", { error: String(err) });
       return c.json({ error: "Could not discover Claude Code integrations" }, 500);
+    }
+  });
+
+  // --- Commands / Skills / Agents Discovery API ---
+
+  /**
+   * GET /api/commands?type=all|skills|commands|agents&search=<query>
+   *
+   * Returns discovered skills, commands, and agents with optional filtering.
+   */
+  app.get("/commands", async (c) => {
+    const typeParam = (c.req.query("type") ?? "all") as string;
+    const search = (c.req.query("search") ?? "").toLowerCase().trim();
+
+    try {
+      let skills: DiscoveredSkill[] = [];
+      let commands: DiscoveredCommand[] = [];
+      let agents: DiscoveredAgent[] = [];
+
+      // Fetch requested types
+      if (typeParam === "all" || typeParam === "skills") {
+        skills = await discoverSkills();
+      }
+      if (typeParam === "all" || typeParam === "commands") {
+        commands = await discoverCommandsDeep();
+      }
+      if (typeParam === "all" || typeParam === "agents") {
+        agents = await discoverAgents();
+      }
+
+      // Apply search filter if provided
+      if (search) {
+        skills = skills.filter((s) =>
+          s.name.toLowerCase().includes(search) ||
+          s.fullName.toLowerCase().includes(search) ||
+          s.description.toLowerCase().includes(search) ||
+          s.triggers.some((t) => t.toLowerCase().includes(search))
+        );
+        commands = commands.filter((cmd) =>
+          cmd.name.toLowerCase().includes(search) ||
+          cmd.fullName.toLowerCase().includes(search) ||
+          cmd.description.toLowerCase().includes(search)
+        );
+        agents = agents.filter((a) =>
+          a.name.toLowerCase().includes(search) ||
+          a.fullName.toLowerCase().includes(search) ||
+          a.description.toLowerCase().includes(search)
+        );
+      }
+
+      return c.json({
+        skills,
+        commands,
+        agents,
+        total: skills.length + commands.length + agents.length,
+      });
+    } catch (err) {
+      log("error", "commands", "Command discovery failed", { error: String(err) });
+      return c.json({ error: "Could not discover commands" }, 500);
+    }
+  });
+
+  /**
+   * GET /api/commands/:type/:name/content
+   *
+   * Returns the raw markdown content of a skill, command, or agent file.
+   * :type must be "skills", "commands", or "agents"
+   * :name is the fullName (e.g., "gws:gws-drive") or plain name
+   */
+  app.get("/commands/:type/:name/content", async (c) => {
+    const type = c.req.param("type");
+    const name = decodeURIComponent(c.req.param("name"));
+
+    try {
+      let path: string | undefined;
+
+      if (type === "skills") {
+        const skills = await discoverSkills();
+        const skill = skills.find((s) => s.fullName === name || s.name === name);
+        path = skill?.path;
+      } else if (type === "commands") {
+        const commands = await discoverCommandsDeep();
+        const cmd = commands.find((cmd) => cmd.fullName === name || cmd.name === name);
+        path = cmd?.path;
+      } else if (type === "agents") {
+        const agents = await discoverAgents();
+        const agent = agents.find((a) => a.fullName === name || a.name === name);
+        path = agent?.path;
+      } else {
+        return c.json({ error: `Invalid type: ${type}. Must be skills, commands, or agents.` }, 400);
+      }
+
+      if (!path) {
+        return c.json({ error: `${type.slice(0, -1)} not found: ${name}` }, 404);
+      }
+
+      const content = await getSkillContent(path);
+      return c.text(content);
+    } catch (err) {
+      log("error", "commands", "Failed to read content", { type, name, error: String(err) });
+      return c.json({ error: "Could not read content" }, 500);
     }
   });
 

@@ -7,7 +7,13 @@ import type { JobService } from "../services/job-service.ts";
 import type { TemplateService } from "../services/template-service.ts";
 import type { Store } from "../db/store.ts";
 import type { Task } from "../types.ts";
-import { discoverAll } from "../integrations/claude-code.ts";
+import {
+  discoverAll,
+  discoverSkills,
+  discoverCommandsDeep,
+  discoverAgents,
+  getSkillContent,
+} from "../integrations/claude-code.ts";
 
 // Helper: resolve a task by name or ID, return null if not found
 function resolveTask(taskService: TaskService, nameOrId: string): Task | null {
@@ -397,6 +403,8 @@ export function createBaaraTools(deps: {
         const summary = {
           pluginCount: integration.plugins.length,
           commandCount: integration.commands.length,
+          skillCount: integration.skills.length,
+          agentCount: integration.agents.length,
           plugins: integration.plugins.map((p) => ({
             name: p.name,
             description: p.description,
@@ -406,12 +414,148 @@ export function createBaaraTools(deps: {
             keywords: p.keywords,
           })),
           commands: integration.commands,
+          skills: integration.skills.map((s) => ({
+            name: s.name,
+            fullName: s.fullName,
+            pluginName: s.pluginName,
+            description: s.description,
+            triggers: s.triggers,
+          })),
+          agents: integration.agents.map((a) => ({
+            name: a.name,
+            fullName: a.fullName,
+            pluginName: a.pluginName,
+            description: a.description,
+          })),
           discoveredAt: integration.discoveredAt,
         };
         return ok(summary);
       } catch (err) {
         return {
           content: [{ type: "text" as const, text: `Discovery failed: ${String(err)}` }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  // 18. list_commands — list all available slash commands, skills, and agents
+  const listCommands = tool(
+    "list_commands",
+    "List all available slash commands, skills, and agents with optional type and search filters",
+    {
+      type: z.enum(["all", "skills", "commands", "agents"]).optional().describe("Filter by type (default: all)"),
+      search: z.string().optional().describe("Search filter matching name, description, or trigger keywords"),
+    },
+    async ({ type, search }) => {
+      try {
+        const typeFilter = type ?? "all";
+        const query = (search ?? "").toLowerCase().trim();
+
+        let skills = typeFilter === "all" || typeFilter === "skills" ? await discoverSkills() : [];
+        let commands = typeFilter === "all" || typeFilter === "commands" ? await discoverCommandsDeep() : [];
+        let agents = typeFilter === "all" || typeFilter === "agents" ? await discoverAgents() : [];
+
+        if (query) {
+          skills = skills.filter((s) =>
+            s.name.toLowerCase().includes(query) ||
+            s.fullName.toLowerCase().includes(query) ||
+            s.description.toLowerCase().includes(query) ||
+            s.triggers.some((t) => t.toLowerCase().includes(query))
+          );
+          commands = commands.filter((cmd) =>
+            cmd.name.toLowerCase().includes(query) ||
+            cmd.fullName.toLowerCase().includes(query) ||
+            cmd.description.toLowerCase().includes(query)
+          );
+          agents = agents.filter((a) =>
+            a.name.toLowerCase().includes(query) ||
+            a.fullName.toLowerCase().includes(query) ||
+            a.description.toLowerCase().includes(query)
+          );
+        }
+
+        return ok({
+          skills: skills.map((s) => ({
+            name: s.name,
+            fullName: s.fullName,
+            pluginName: s.pluginName,
+            description: s.description,
+            triggers: s.triggers,
+          })),
+          commands: commands.map((cmd) => ({
+            name: cmd.name,
+            fullName: cmd.fullName,
+            source: cmd.source,
+            pluginName: cmd.pluginName,
+            description: cmd.description,
+            argumentHint: cmd.argumentHint,
+          })),
+          agents: agents.map((a) => ({
+            name: a.name,
+            fullName: a.fullName,
+            pluginName: a.pluginName,
+            description: a.description,
+            model: a.model,
+          })),
+          total: skills.length + commands.length + agents.length,
+        });
+      } catch (err) {
+        return {
+          content: [{ type: "text" as const, text: `List failed: ${String(err)}` }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  // 19. run_skill — read a skill's content and return it as context for execution
+  const runSkill = tool(
+    "run_skill",
+    "Load a skill by name and return its markdown content as context for execution. The skill's instructions become part of the conversation.",
+    {
+      name: z.string().describe("Skill name or fullName (e.g., 'gws:gws-drive' or 'gws-drive')"),
+      arguments: z.string().optional().describe("Optional arguments to pass to the skill"),
+    },
+    async ({ name, arguments: args }) => {
+      try {
+        const skills = await discoverSkills();
+        const skill = skills.find((s) => s.fullName === name || s.name === name);
+
+        if (!skill) {
+          const available = skills.map((s) => s.fullName).join(", ");
+          return {
+            content: [{
+              type: "text" as const,
+              text: `Skill not found: ${name}\n\nAvailable skills: ${available || "(none)"}`,
+            }],
+            isError: true,
+          };
+        }
+
+        const content = await getSkillContent(skill.path);
+        const header = [
+          `# Skill: ${skill.fullName}`,
+          skill.description ? `> ${skill.description}` : "",
+          args ? `\n**Arguments:** ${args}` : "",
+          "",
+          "---",
+          "",
+        ].filter(Boolean).join("\n");
+
+        return ok({
+          skill: {
+            name: skill.name,
+            fullName: skill.fullName,
+            pluginName: skill.pluginName,
+            description: skill.description,
+          },
+          arguments: args ?? null,
+          content: header + content,
+        });
+      } catch (err) {
+        return {
+          content: [{ type: "text" as const, text: `Failed to load skill: ${String(err)}` }],
           isError: true,
         };
       }
@@ -438,6 +582,8 @@ export function createBaaraTools(deps: {
       listProjectsTool,
       setActiveProject,
       discoverPlugins,
+      listCommands,
+      runSkill,
     ],
   });
 }

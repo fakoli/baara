@@ -16,6 +16,7 @@ import { registerQueuesCommand } from "./commands/queues.ts";
 import { registerTemplatesCommand } from "./commands/templates.ts";
 import { registerStatusCommand } from "./commands/status.ts";
 import { registerLogsCommand } from "./commands/logs.ts";
+import { registerCommandsCommand } from "./commands/commands.ts";
 
 // --- Initialize ---
 
@@ -43,6 +44,7 @@ registerQueuesCommand(program, store);
 registerTemplatesCommand(program, store, templateService);
 registerStatusCommand(program, store);
 registerLogsCommand(program);
+registerCommandsCommand(program);
 
 // --- Run ---
 
