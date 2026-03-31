@@ -20,6 +20,11 @@ function sanitizeInput(input: CreateTaskInput | UpdateTaskInput): void {
       throw new Error(`Invalid executionType: ${input.executionType}. Must be one of: ${VALID_EXECUTION_TYPES.join(", ")}`);
     }
   }
+  if ("executionType" in input && input.executionType === "agent_sdk") {
+    if (!("agentConfig" in input) || !input.agentConfig) {
+      throw new Error("agent_sdk tasks require agentConfig with at least allowedTools");
+    }
+  }
   if ("agentConfig" in input && input.agentConfig) {
     const ac = input.agentConfig;
     // Validate permissionMode if provided

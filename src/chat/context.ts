@@ -53,6 +53,7 @@ export function gatherChatContext(store: Store, activeProjectId?: string): ChatC
     activeJobs,
     pendingJobs,
     activeProject,
+    customSystemPrompt: store.getSetting("custom_system_prompt") || undefined,
   };
 }
 

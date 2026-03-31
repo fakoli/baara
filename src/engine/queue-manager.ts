@@ -4,6 +4,7 @@
 import type { Store } from "../db/store.ts";
 import type { Job } from "../types.ts";
 import { executeJob } from "./executor.ts";
+import { handleJobFailure } from "./retry.ts";
 import { log } from "../logger.ts";
 
 export class QueueManager {
@@ -64,14 +65,9 @@ export class QueueManager {
         outputTokens: result.outputTokens,
       });
 
-      // Retry on failure or timeout
-      const isFailure = result.status === "failed" || result.status === "timed_out";
-      if (isFailure && job.attempt < task.maxRetries) {
-        const retryId = crypto.randomUUID();
-        this.store.createJob(retryId, task.id, job.queueName, job.priority, new Date().toISOString(), job.attempt + 1);
-      } else if (isFailure && task.maxRetries > 0) {
-        this.store.updateJobStatus(job.id, "triage");
-      }
+      // Handle retry on failure or timeout
+      const updatedJob = this.store.getJob(job.id)!;
+      handleJobFailure(this.store, updatedJob, task);
     } catch (error) {
       this.store.updateJobStatus(job.id, "failed", {
         completedAt: new Date().toISOString(),

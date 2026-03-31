@@ -391,8 +391,15 @@ export async function getSkillContent(path: string): Promise<string> {
 
 /**
  * Full discovery: plugins + commands + skills + agents in a single call.
+ * Results are cached with a 60-second TTL to avoid redundant filesystem scans.
  */
+let cachedResult: ClaudeCodeIntegration | null = null;
+let cacheExpiry = 0;
+const CACHE_TTL_MS = 60_000;
+
 export async function discoverAll(): Promise<ClaudeCodeIntegration> {
+  if (cachedResult && Date.now() < cacheExpiry) return cachedResult;
+
   const [plugins, commands, skills, deepCommands, agents] = await Promise.all([
     discoverPlugins(),
     discoverCommands(),
@@ -400,7 +407,7 @@ export async function discoverAll(): Promise<ClaudeCodeIntegration> {
     discoverCommandsDeep(),
     discoverAgents(),
   ]);
-  return {
+  const result: ClaudeCodeIntegration = {
     plugins,
     commands,
     skills,
@@ -408,4 +415,13 @@ export async function discoverAll(): Promise<ClaudeCodeIntegration> {
     agents,
     discoveredAt: new Date().toISOString(),
   };
+
+  cachedResult = result;
+  cacheExpiry = Date.now() + CACHE_TTL_MS;
+  return result;
+}
+
+export function clearDiscoveryCache(): void {
+  cachedResult = null;
+  cacheExpiry = 0;
 }

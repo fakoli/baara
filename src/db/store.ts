@@ -275,6 +275,23 @@ export class Store {
     this.db.query("DELETE FROM projects WHERE id = ?").run(id);
   }
 
+  // --- Settings ---
+
+  getSetting(key: string): string | null {
+    const row = this.db.query("SELECT value FROM settings WHERE key = ?").get(key) as { value: string } | null;
+    return row?.value ?? null;
+  }
+
+  setSetting(key: string, value: string): void {
+    this.db.query(
+      "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime('now')"
+    ).run(key, value, value);
+  }
+
+  deleteSetting(key: string): void {
+    this.db.query("DELETE FROM settings WHERE key = ?").run(key);
+  }
+
   // --- Usage ---
 
   getUsageStats(): { totalInputTokens: number; totalOutputTokens: number; totalJobs: number } {

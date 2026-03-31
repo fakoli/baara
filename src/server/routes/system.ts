@@ -166,5 +166,23 @@ export function systemRoutes(store: Store) {
     }
   });
 
+  // --- Settings: System Prompt ---
+
+  app.get("/settings/system-prompt", (c) => {
+    return c.json({ prompt: store.getSetting("custom_system_prompt") || "" });
+  });
+
+  app.put("/settings/system-prompt", async (c) => {
+    const { prompt } = await c.req.json<{ prompt: string }>();
+    if (typeof prompt !== "string") return c.json({ error: "prompt must be a string" }, 400);
+    if (prompt.length > 10000) return c.json({ error: "prompt too long (max 10000 chars)" }, 400);
+    if (prompt.trim()) {
+      store.setSetting("custom_system_prompt", prompt.trim());
+    } else {
+      store.deleteSetting("custom_system_prompt");
+    }
+    return c.json({ ok: true });
+  });
+
   return app;
 }

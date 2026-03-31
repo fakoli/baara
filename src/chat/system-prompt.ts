@@ -10,6 +10,7 @@ export interface ChatContext {
   activeJobs: number;
   pendingJobs: number;
   activeProject?: { id: string; name: string; instructions: string } | null;
+  customSystemPrompt?: string;
 }
 
 const BASE_PROMPT = `You are Baara, a personal task scheduling assistant built on the Claude Agent SDK.
@@ -63,6 +64,11 @@ After completing a tool call, naturally suggest relevant next steps:
 /** Build a context-aware system prompt with live state injected */
 export function buildSystemPrompt(ctx: ChatContext): string {
   const sections: string[] = [BASE_PROMPT];
+
+  // Inject custom system prompt if configured
+  if (ctx.customSystemPrompt) {
+    sections.push(`## Custom Instructions\n${ctx.customSystemPrompt}`);
+  }
 
   // Inject live context section
   const lines: string[] = ["## Current System State"];
