@@ -41,5 +41,5 @@ make baara ARGS="tasks list"       # Alternative CLI via Makefile
 
 ## Before Committing
 1. `bunx tsc --noEmit` — zero errors
-2. `grep -ri "fakoli" src/ web/ package.json` — should return zero
+2. `grep -r "fakoli" src/ web/ package.json` — should return only hostname refs (Fakoli-Mini.local)
 3. Test: `bun start` boots without error

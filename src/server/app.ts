@@ -28,7 +28,7 @@ const ALLOWED_ORIGINS = new Set([
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://10.0.0.167:3000",
-  "http://fakoli-mini.local:3000",
+  "http://Fakoli-Mini.local:3000",
   "http://baara.local:3000",
 ]);
 
