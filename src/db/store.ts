@@ -6,6 +6,7 @@ import type {
   Job, JobStatus, HealthStatus, Priority,
   Template, CreateTemplateInput,
   QueueInfo,
+  Project, CreateProjectInput,
 } from "../types.ts";
 
 export class Store {
@@ -13,7 +14,10 @@ export class Store {
 
   // --- Tasks ---
 
-  listTasks(): Task[] {
+  listTasks(projectId?: string): Task[] {
+    if (projectId) {
+      return this.db.query("SELECT * FROM tasks WHERE project_id = ? ORDER BY created_at DESC").all(projectId).map(rowToTask);
+    }
     return this.db.query("SELECT * FROM tasks ORDER BY created_at DESC").all().map(rowToTask);
   }
 
@@ -31,8 +35,8 @@ export class Store {
     this.db.query(`
       INSERT INTO tasks (id, name, description, prompt, scheduled_at, cron_expression,
         timeout_ms, execution_type, agent_config, priority, target_queue,
-        max_retries, execution_mode, enabled)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        max_retries, execution_mode, enabled, project_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       input.name,
@@ -48,6 +52,7 @@ export class Store {
       input.maxRetries ?? 0,
       input.executionMode ?? defaultMode,
       input.enabled !== false ? 1 : 0,
+      input.projectId ?? null,
     );
     return this.getTask(id)!;
   }
@@ -72,6 +77,7 @@ export class Store {
     if (input.maxRetries !== undefined) { fields.push("max_retries = ?"); values.push(input.maxRetries); }
     if (input.executionMode !== undefined) { fields.push("execution_mode = ?"); values.push(input.executionMode); }
     if (input.enabled !== undefined) { fields.push("enabled = ?"); values.push(input.enabled ? 1 : 0); }
+    if (input.projectId !== undefined) { fields.push("project_id = ?"); values.push(input.projectId ?? null); }
 
     if (fields.length === 0) return this.getTask(id)!;
 
@@ -220,6 +226,55 @@ export class Store {
     this.db.query("DELETE FROM templates WHERE id = ?").run(id);
   }
 
+  // --- Projects ---
+
+  listProjects(): Project[] {
+    return this.db.query("SELECT * FROM projects ORDER BY created_at DESC").all().map(rowToProject);
+  }
+
+  getProject(id: string): Project | null {
+    const row = this.db.query("SELECT * FROM projects WHERE id = ?").get(id);
+    return row ? rowToProject(row) : null;
+  }
+
+  createProject(id: string, input: CreateProjectInput): Project {
+    this.db.query(`
+      INSERT INTO projects (id, name, description, instructions, working_directory)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      id,
+      input.name,
+      input.description ?? "",
+      input.instructions ?? "",
+      input.workingDirectory ?? "",
+    );
+    return this.getProject(id)!;
+  }
+
+  updateProject(id: string, input: Partial<CreateProjectInput>): Project {
+    const fields: string[] = [];
+    const values: SQLQueryBindings[] = [];
+
+    if (input.name !== undefined) { fields.push("name = ?"); values.push(input.name); }
+    if (input.description !== undefined) { fields.push("description = ?"); values.push(input.description); }
+    if (input.instructions !== undefined) { fields.push("instructions = ?"); values.push(input.instructions); }
+    if (input.workingDirectory !== undefined) { fields.push("working_directory = ?"); values.push(input.workingDirectory); }
+
+    if (fields.length === 0) return this.getProject(id)!;
+
+    fields.push("updated_at = datetime('now')");
+    values.push(id);
+
+    this.db.query(`UPDATE projects SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+    return this.getProject(id)!;
+  }
+
+  deleteProject(id: string): void {
+    // Unlink tasks from this project before deleting
+    this.db.query("UPDATE tasks SET project_id = NULL WHERE project_id = ?").run(id);
+    this.db.query("DELETE FROM projects WHERE id = ?").run(id);
+  }
+
   // --- Usage ---
 
   getUsageStats(): { totalInputTokens: number; totalOutputTokens: number; totalJobs: number } {
@@ -256,6 +311,7 @@ function rowToTask(row: unknown): Task {
     targetQueue: r["target_queue"] as string,
     maxRetries: r["max_retries"] as number,
     executionMode: r["execution_mode"] as Task["executionMode"],
+    projectId: (r["project_id"] as string | null) ?? null,
     enabled: (r["enabled"] as number) === 1,
     createdAt: r["created_at"] as string,
     updatedAt: r["updated_at"] as string,
@@ -291,6 +347,19 @@ function rowToTemplate(row: unknown): Template {
     name: r["name"] as string,
     description: r["description"] as string,
     agentConfig: JSON.parse(r["agent_config"] as string),
+    createdAt: r["created_at"] as string,
+    updatedAt: r["updated_at"] as string,
+  };
+}
+
+function rowToProject(row: unknown): Project {
+  const r = row as Record<string, unknown>;
+  return {
+    id: r["id"] as string,
+    name: r["name"] as string,
+    description: r["description"] as string,
+    instructions: r["instructions"] as string,
+    workingDirectory: r["working_directory"] as string,
     createdAt: r["created_at"] as string,
     updatedAt: r["updated_at"] as string,
   };

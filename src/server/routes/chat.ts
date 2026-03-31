@@ -60,9 +60,10 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: S
   });
 
   app.post("/", async (c) => {
-    const { message, sessionId } = await c.req.json<{
+    const { message, sessionId, activeProjectId } = await c.req.json<{
       message: string;
       sessionId?: string;
+      activeProjectId?: string;
     }>();
     if (!message || typeof message !== "string") {
       return c.json({ error: "message is required" }, 400);
@@ -79,7 +80,7 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: S
 
       try {
         // Gather live context and build a context-aware system prompt
-        const chatContext = gatherChatContext(store);
+        const chatContext = gatherChatContext(store, activeProjectId);
         const systemPrompt = buildSystemPrompt(chatContext);
 
         // Build options — resume session if sessionId is provided

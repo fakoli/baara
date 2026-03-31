@@ -2111,3 +2111,115 @@ select.form-input:not(.modal select.form-input) {
     padding: 0 12px;
   }
 }
+
+/* === Project Switcher === */
+.project-switcher {
+  position: relative;
+}
+
+.project-switcher-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--sans);
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.project-switcher-btn:hover {
+  border-color: var(--border-hover);
+  background: var(--card-hover);
+}
+
+.project-switcher-btn .project-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-switcher-btn .chevron {
+  opacity: 0.5;
+  transition: transform 0.15s;
+}
+
+.project-switcher-btn[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+.project-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 220px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  padding: 4px;
+}
+
+.project-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.project-item:hover {
+  background: var(--card-hover);
+}
+
+.project-item.active {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.project-item-name {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.project-item-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.project-new-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-family: var(--sans);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.project-new-btn:hover {
+  background: var(--card-hover);
+}

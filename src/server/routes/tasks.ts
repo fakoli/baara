@@ -9,7 +9,10 @@ import { log } from "../../logger.ts";
 export function taskRoutes(taskService: TaskService, jobService: JobService, scheduler: Scheduler) {
   const app = new Hono();
 
-  app.get("/", (c) => c.json(taskService.listTasks()));
+  app.get("/", (c) => {
+    const projectId = c.req.query("projectId");
+    return c.json(taskService.listTasks(projectId));
+  });
 
   app.get("/:id", (c) => {
     const task = taskService.getTask(c.req.param("id"));

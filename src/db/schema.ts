@@ -67,7 +67,24 @@ export function initDatabase(dbPath: string): Database {
 
     CREATE INDEX IF NOT EXISTS idx_jobs_queue_priority
       ON jobs(queue_name, status, priority ASC, created_at ASC);
+
+    CREATE TABLE IF NOT EXISTS projects (
+      id TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT DEFAULT '',
+      instructions TEXT DEFAULT '',
+      working_directory TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
   `);
+
+  // Migration: add project_id to tasks if it doesn't exist
+  const taskColumns = db.query("PRAGMA table_info(tasks)").all() as Array<{ name: string }>;
+  const hasProjectId = taskColumns.some((col) => col.name === "project_id");
+  if (!hasProjectId) {
+    db.exec("ALTER TABLE tasks ADD COLUMN project_id TEXT REFERENCES projects(id)");
+  }
 
   // Seed default queue
   db.prepare(

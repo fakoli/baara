@@ -8,6 +8,7 @@ import { jobRoutes } from "./routes/jobs.ts";
 import { templateRoutes } from "./routes/templates.ts";
 import { systemRoutes } from "./routes/system.ts";
 import { chatRoutes } from "./routes/chat.ts";
+import { projectRoutes } from "./routes/projects.ts";
 import type { TaskService } from "../services/task-service.ts";
 import type { JobService } from "../services/job-service.ts";
 import type { TemplateService } from "../services/template-service.ts";
@@ -109,6 +110,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api/tasks", taskRoutes(deps.taskService, deps.jobService, deps.scheduler));
   app.route("/api/jobs", jobRoutes(deps.jobService));
   app.route("/api/templates", templateRoutes(deps.templateService));
+  app.route("/api/projects", projectRoutes(deps.store));
   app.route("/api/chat", chatRoutes(deps.baaraServer, deps.store));
   app.route("/api", systemRoutes(deps.store));
 

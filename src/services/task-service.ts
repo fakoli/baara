@@ -42,7 +42,7 @@ function sanitizeInput(input: CreateTaskInput | UpdateTaskInput): void {
 export class TaskService {
   constructor(private store: Store, private defaultMode: string) {}
 
-  listTasks(): Task[] { return this.store.listTasks(); }
+  listTasks(projectId?: string): Task[] { return this.store.listTasks(projectId); }
   getTask(id: string): Task | null { return this.store.getTask(id); }
   getTaskByName(name: string): Task | null { return this.store.getTaskByName(name); }
 

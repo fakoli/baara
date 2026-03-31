@@ -51,6 +51,7 @@ export interface Task {
   targetQueue: string;
   maxRetries: number;
   executionMode: ExecutionMode;
+  projectId: string | null;
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -70,6 +71,7 @@ export interface CreateTaskInput {
   maxRetries?: number;
   executionMode?: ExecutionMode;
   enabled?: boolean;
+  projectId?: string | null;
 }
 
 export interface UpdateTaskInput {
@@ -86,6 +88,7 @@ export interface UpdateTaskInput {
   maxRetries?: number;
   executionMode?: ExecutionMode;
   enabled?: boolean;
+  projectId?: string | null;
 }
 
 // --- Job ---
@@ -142,4 +145,23 @@ export interface CreateTemplateInput {
   name: string;
   description?: string;
   agentConfig: AgentConfig;
+}
+
+// --- Project ---
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  instructions: string;     // Per-project system prompt additions
+  workingDirectory: string; // CWD for tasks in this project
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  instructions?: string;
+  workingDirectory?: string;
 }

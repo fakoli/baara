@@ -5,6 +5,7 @@ import * as contextPanel from './components/context-panel.js';
 import * as tabBar from './components/tab-bar.js';
 import * as triageBadge from './components/triage-badge.js';
 import * as chatSessions from './components/chat-sessions.js';
+import * as projectSwitcher from './components/project-switcher.js';
 import { showCreateTaskModal } from './components/create-task-modal.js';
 import { showSettingsPanel } from './components/settings-panel.js';
 
@@ -14,6 +15,7 @@ const state = {
   activeTab: 'overview',
   contextView: 'overview', // overview | task-detail | tasks | jobs | queues | triage
   panelCollapsed: localStorage.getItem('panelCollapsed') === 'true',
+  activeProjectId: localStorage.getItem('baara_active_project_id') || null,
 
   onStateChange: null,
   onNavigate: null,
@@ -32,6 +34,7 @@ const createTaskBtn = document.getElementById('create-task-btn');
 const newChatBtn = document.getElementById('new-chat-btn');
 const sessionsBtn = document.getElementById('sessions-btn');
 const settingsBtn = document.getElementById('settings-btn');
+const projectSwitcherEl = document.getElementById('project-switcher');
 
 // --- Render Loop ---
 
@@ -97,6 +100,12 @@ function handleToolCallEvent(event) {
     case 'get_status':
       state.contextView = 'overview';
       state.activeTab = 'overview';
+      renderAll();
+      break;
+    case 'list_projects':
+    case 'set_active_project':
+      // Refresh project switcher
+      projectSwitcher.update(state.activeProjectId);
       renderAll();
       break;
   }
@@ -196,6 +205,7 @@ function init() {
     onToolCallCallback: (event) => {
       handleToolCallEvent(event);
     },
+    getActiveProjectId: () => state.activeProjectId,
   });
 
   // Panel toggle
@@ -241,6 +251,21 @@ function init() {
   // Settings button
   settingsBtn.addEventListener('click', () => {
     showSettingsPanel();
+  });
+
+  // Project switcher
+  projectSwitcher.init(projectSwitcherEl, {
+    activeProjectId: state.activeProjectId,
+    onProjectChange: (project) => {
+      state.activeProjectId = project ? project.id : null;
+      if (state.activeProjectId) {
+        localStorage.setItem('baara_active_project_id', state.activeProjectId);
+      } else {
+        localStorage.removeItem('baara_active_project_id');
+      }
+      projectSwitcher.update(state.activeProjectId);
+      renderAll();
+    },
   });
 
   // Keyboard shortcuts

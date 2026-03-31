@@ -9,6 +9,7 @@ export interface ChatContext {
   recentFailures: Array<{ taskName: string; error: string; when: string }>;
   activeJobs: number;
   pendingJobs: number;
+  activeProject?: { id: string; name: string; instructions: string } | null;
 }
 
 const BASE_PROMPT = `You are Baara, a personal task scheduling assistant built on the Claude Agent SDK.
@@ -96,6 +97,18 @@ export function buildSystemPrompt(ctx: ChatContext): string {
   }
 
   sections.push(lines.join("\n"));
+
+  // Inject active project instructions if present
+  if (ctx.activeProject) {
+    const projectLines: string[] = [`## Active Project: ${ctx.activeProject.name}`];
+    projectLines.push(`Tasks created via chat will be scoped to this project.`);
+    if (ctx.activeProject.instructions) {
+      projectLines.push("");
+      projectLines.push("### Project Instructions");
+      projectLines.push(ctx.activeProject.instructions);
+    }
+    sections.push(projectLines.join("\n"));
+  }
 
   return sections.join("\n\n");
 }

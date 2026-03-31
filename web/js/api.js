@@ -14,8 +14,11 @@ async function request(path, opts = {}) {
 
 export const api = {
   // Tasks
-  listTasks() {
-    return request('/api/tasks');
+  listTasks(opts = {}) {
+    const params = new URLSearchParams();
+    if (opts.projectId) params.set('projectId', opts.projectId);
+    const qs = params.toString();
+    return request(`/api/tasks${qs ? '?' + qs : ''}`);
   },
 
   getTask(id) {
@@ -104,6 +107,23 @@ export const api = {
     });
   },
 
+  // Projects
+  listProjects() {
+    return request('/api/projects');
+  },
+
+  createProject(data) {
+    return request('/api/projects', { method: 'POST', body: JSON.stringify(data) });
+  },
+
+  updateProject(id, data) {
+    return request(`/api/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  },
+
+  deleteProject(id) {
+    return request(`/api/projects/${id}`, { method: 'DELETE' });
+  },
+
   // Chat Sessions
   listChatSessions() {
     return request('/api/chat/sessions');
@@ -121,9 +141,10 @@ export const api = {
   },
 
   // Chat (SSE streaming)
-  async chatStream(message, onEvent, { sessionId } = {}) {
+  async chatStream(message, onEvent, { sessionId, activeProjectId } = {}) {
     const body = { message };
     if (sessionId) body.sessionId = sessionId;
+    if (activeProjectId) body.activeProjectId = activeProjectId;
 
     const response = await fetch('/api/chat', {
       method: 'POST',

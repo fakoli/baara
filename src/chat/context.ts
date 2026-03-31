@@ -8,7 +8,7 @@ import type { ChatContext } from "./system-prompt.ts";
  * Queries are lightweight (counts + recent failures) so this is safe
  * to call on every chat message.
  */
-export function gatherChatContext(store: Store): ChatContext {
+export function gatherChatContext(store: Store, activeProjectId?: string): ChatContext {
   const tasks = store.listTasks();
   const triageJobs = store.getTriageJobs();
   const queues = store.listQueues();
@@ -31,6 +31,19 @@ export function gatherChatContext(store: Store): ChatContext {
     recentFailures.push({ taskName, error, when });
   }
 
+  // Look up active project if specified
+  let activeProject: ChatContext["activeProject"] = null;
+  if (activeProjectId) {
+    const project = store.getProject(activeProjectId);
+    if (project) {
+      activeProject = {
+        id: project.id,
+        name: project.name,
+        instructions: project.instructions,
+      };
+    }
+  }
+
   return {
     taskCount: tasks.length,
     enabledTaskCount: tasks.filter((t) => t.enabled).length,
@@ -39,6 +52,7 @@ export function gatherChatContext(store: Store): ChatContext {
     recentFailures,
     activeJobs,
     pendingJobs,
+    activeProject,
   };
 }
 

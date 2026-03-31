@@ -6,7 +6,7 @@ import type { TaskService } from "../services/task-service.ts";
 import type { JobService } from "../services/job-service.ts";
 import type { TemplateService } from "../services/template-service.ts";
 import type { Store } from "../db/store.ts";
-import type { Task } from "../types.ts";
+import type { Task, Project } from "../types.ts";
 
 // Helper: resolve a task by name or ID, return null if not found
 function resolveTask(taskService: TaskService, nameOrId: string): Task | null {
@@ -339,6 +339,52 @@ export function createBaaraTools(deps: {
     },
   );
 
+  // 15. list_projects
+  const listProjectsTool = tool(
+    "list_projects",
+    "List all projects",
+    {},
+    async () => {
+      const projects = store.listProjects();
+      if (projects.length === 0) {
+        return ok({ message: "No projects yet. Create one to organize your tasks." });
+      }
+      return ok(
+        projects.map((p) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          taskCount: store.listTasks(p.id).length,
+        })),
+      );
+    },
+  );
+
+  // 16. set_active_project
+  const setActiveProject = tool(
+    "set_active_project",
+    "Set the active project for scoping tasks. Pass an empty string to clear.",
+    { nameOrId: z.string().describe("Project name, ID, or empty string to clear") },
+    async ({ nameOrId }) => {
+      if (!nameOrId) {
+        return ok({ message: "Active project cleared. Tasks are now unscoped." });
+      }
+      // Try by name first, then by id
+      const projects = store.listProjects();
+      const project = projects.find((p) => p.name === nameOrId) ?? store.getProject(nameOrId);
+      if (!project) {
+        return {
+          content: [{ type: "text" as const, text: `Project not found: ${nameOrId}` }],
+          isError: true,
+        };
+      }
+      return ok({
+        message: `Active project set to "${project.name}"`,
+        project: { id: project.id, name: project.name },
+      });
+    },
+  );
+
   return createSdkMcpServer({
     name: "baara",
     tools: [
@@ -356,6 +402,8 @@ export function createBaaraTools(deps: {
       listTriage,
       getStatus,
       listTemplates,
+      listProjectsTool,
+      setActiveProject,
     ],
   });
 }

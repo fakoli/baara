@@ -87,11 +87,12 @@ async function renderTaskList(container, state) {
   container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
 
   try {
-    const tasks = await api.listTasks();
+    const tasks = await api.listTasks(state.activeProjectId ? { projectId: state.activeProjectId } : {});
 
     if (tasks.length === 0) {
+      const titleText = state.activeProjectId ? 'Project Tasks' : 'All Tasks';
       container.innerHTML = `
-        <div class="section-title">All Tasks</div>
+        <div class="section-title">${escapeHtml(titleText)}</div>
         <div class="empty-state">
           <div class="empty-state-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -109,8 +110,9 @@ async function renderTaskList(container, state) {
       return;
     }
 
+    const listTitleText = state.activeProjectId ? 'Project Tasks' : 'All Tasks';
     container.innerHTML = `
-      <div class="section-title">All Tasks</div>
+      <div class="section-title">${escapeHtml(listTitleText)}</div>
       <div class="list-header task-list-grid">
         <span></span>
         <span>Name</span>

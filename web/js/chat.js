@@ -9,6 +9,7 @@ let inputElement = null;
 let sendButton = null;
 let inputHint = null;
 let onToolCall = null;
+let getActiveProjectId = null;
 let isStreaming = false;
 let sessionId = null;
 let lastSentMessage = null;
@@ -26,13 +27,15 @@ const sessionDomCache = new Map();
  * @param {HTMLElement} config.messagesEl — DOM element for the message list
  * @param {HTMLElement} config.inputEl — textarea element for user input
  * @param {Function} [config.onToolCallCallback] — called when Claude invokes a tool
+ * @param {Function} [config.getActiveProjectId] — returns current active project ID or null
  */
-export function init({ messagesEl, inputEl, onToolCallCallback }) {
+export function init({ messagesEl, inputEl, onToolCallCallback, getActiveProjectId: getProjectId }) {
   messagesContainer = messagesEl;
   inputElement = inputEl;
   sendButton = document.getElementById('send-btn');
   inputHint = document.getElementById('input-hint');
   onToolCall = onToolCallCallback || null;
+  getActiveProjectId = getProjectId || null;
 
   // Restore session from sessionStorage
   restoreSession();
@@ -213,7 +216,7 @@ async function handleSend(text) {
         case 'done':
           break;
       }
-    }, { sessionId });
+    }, { sessionId, activeProjectId: getActiveProjectId ? getActiveProjectId() : null });
   } catch (err) {
     typingEl.remove();
     addErrorMessage(err.message, text);
