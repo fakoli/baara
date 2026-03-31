@@ -41,8 +41,8 @@ export async function render(container, state) {
 }
 
 async function renderOverview(container, state) {
-  await overviewCard.render(container);
-  overviewCard.startAutoRefresh(container);
+  await overviewCard.render(container, state.onNavigate);
+  overviewCard.startAutoRefresh(container, state.onNavigate);
 }
 
 async function renderTaskDetail(container, state) {

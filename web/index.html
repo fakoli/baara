@@ -47,12 +47,12 @@
         </div>
       </section>
       <div id="resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize panels"></div>
+      <button class="icon-btn" id="panel-toggle" title="Toggle panel (Cmd+Shift+O)" aria-label="Toggle context panel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
       <section id="context-panel" role="complementary" aria-label="Context panel">
-        <button class="icon-btn" id="panel-toggle" title="Toggle panel" aria-label="Toggle context panel">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </button>
         <div id="context-content"></div>
         <div id="tab-bar" role="tablist" aria-label="Context panel tabs"></div>
       </section>

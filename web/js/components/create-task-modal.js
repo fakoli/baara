@@ -65,7 +65,9 @@ export function showCreateTaskModal(onCreated) {
   };
   overlay.querySelector('.modal-close').addEventListener('click', close);
   overlay.querySelector('.cancel-btn').addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
+  overlay.addEventListener('mousedown', (e) => {
+    // Only close if the mousedown originated directly on the overlay backdrop
+    // (not on a select dropdown or other element that might bubble)
     if (e.target === overlay) close();
   });
 

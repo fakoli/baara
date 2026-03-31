@@ -5,6 +5,7 @@ import * as contextPanel from './components/context-panel.js';
 import * as tabBar from './components/tab-bar.js';
 import * as triageBadge from './components/triage-badge.js';
 import { showCreateTaskModal } from './components/create-task-modal.js';
+import { showSettingsPanel } from './components/settings-panel.js';
 
 // --- State ---
 const state = {
@@ -28,6 +29,7 @@ const contextPanelEl = document.getElementById('context-panel');
 const resizeHandle = document.getElementById('resize-handle');
 const createTaskBtn = document.getElementById('create-task-btn');
 const newChatBtn = document.getElementById('new-chat-btn');
+const settingsBtn = document.getElementById('settings-btn');
 
 // --- Render Loop ---
 
@@ -117,10 +119,12 @@ function applyPanelState() {
   const toggleIcon = panelToggleBtn.querySelector('svg');
   if (state.panelCollapsed) {
     contextPanelEl.classList.add('collapsed');
+    panelToggleBtn.classList.add('panel-collapsed');
     resizeHandle.style.display = 'none';
     if (toggleIcon) toggleIcon.style.transform = 'rotate(180deg)';
   } else {
     contextPanelEl.classList.remove('collapsed');
+    panelToggleBtn.classList.remove('panel-collapsed');
     resizeHandle.style.display = '';
     if (toggleIcon) toggleIcon.style.transform = 'rotate(0deg)';
   }
@@ -168,6 +172,14 @@ function handleCreateTask() {
   });
 }
 
+// --- Navigate Callback (for stat cards) ---
+state.onNavigate = (view, tab) => {
+  state.contextView = view;
+  if (tab) state.activeTab = tab;
+  state.selectedTask = null;
+  renderAll();
+};
+
 // --- State Change Callback ---
 state.onStateChange = () => {
   renderAll();
@@ -199,6 +211,11 @@ function init() {
     chat.startNewChat();
   });
 
+  // Settings button
+  settingsBtn.addEventListener('click', () => {
+    showSettingsPanel();
+  });
+
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     // Cmd+Shift+N — new chat
@@ -220,12 +237,27 @@ function init() {
     renderAll();
   });
 
+  // Apply saved theme
+  const savedTheme = localStorage.getItem('baara-theme');
+  if (savedTheme) {
+    document.documentElement.dataset.theme = savedTheme;
+  }
+
   // Initial render
   renderAll();
 
   // Re-focus chat input when clicking outside interactive areas
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('button') && !e.target.closest('a') && !e.target.closest('input') && !e.target.closest('textarea')) {
+    if (
+      !e.target.closest('button') &&
+      !e.target.closest('a') &&
+      !e.target.closest('input') &&
+      !e.target.closest('textarea') &&
+      !e.target.closest('select') &&
+      !e.target.closest('.modal-overlay') &&
+      !e.target.closest('.settings-overlay') &&
+      !e.target.closest('.settings-drawer')
+    ) {
       chatInput.focus();
     }
   });

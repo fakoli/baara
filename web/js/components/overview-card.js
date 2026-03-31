@@ -5,7 +5,7 @@ import { escapeHtml, timeAgo, statusDotClass, statusLabel, formatTokens, formatD
 
 let refreshInterval = null;
 
-export async function render(container) {
+export async function render(container, onNavigate) {
   container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
 
   try {
@@ -44,15 +44,15 @@ export async function render(container) {
 
     container.innerHTML = `
       <div class="stats-grid">
-        <div class="stat-card accent-green">
+        <div class="stat-card accent-green clickable" data-nav-view="tasks" data-nav-tab="tasks">
           <div class="stat-number">${activeTasks}</div>
           <div class="stat-label">Active Tasks</div>
         </div>
-        <div class="stat-card accent-blue">
+        <div class="stat-card accent-blue clickable" data-nav-view="jobs" data-nav-tab="jobs">
           <div class="stat-number">${runningJobs}</div>
           <div class="stat-label">Running Jobs</div>
         </div>
-        <div class="stat-card accent-red" style="${triageCount > 0 ? 'border-color: rgba(239, 68, 68, 0.3);' : ''}">
+        <div class="stat-card accent-red clickable" data-nav-view="triage" style="${triageCount > 0 ? 'border-color: rgba(239, 68, 68, 0.3);' : ''}">
           <div class="stat-number" style="${triageCount > 0 ? 'color: var(--red);' : ''}">${triageCount}</div>
           <div class="stat-label">Triage</div>
         </div>
@@ -63,11 +63,11 @@ export async function render(container) {
           <div class="stat-number">${formatTokens(usage.totalInputTokens + usage.totalOutputTokens)}</div>
           <div class="stat-label">Total Tokens</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card clickable" data-nav-view="jobs" data-nav-tab="jobs">
           <div class="stat-number">${usage.totalJobs}</div>
           <div class="stat-label">Total Jobs</div>
         </div>
-        <div class="stat-card accent-green">
+        <div class="stat-card accent-green clickable" data-nav-view="tasks" data-nav-tab="tasks">
           <div class="stat-number">${tasks.length}</div>
           <div class="stat-label">Total Tasks</div>
         </div>
@@ -86,6 +86,17 @@ export async function render(container) {
         `).join('')
       }
     `;
+
+    // Wire stat card click handlers for navigation
+    if (onNavigate) {
+      container.querySelectorAll('.stat-card.clickable[data-nav-view]').forEach(card => {
+        card.addEventListener('click', () => {
+          const view = card.dataset.navView;
+          const tab = card.dataset.navTab || null;
+          onNavigate(view, tab);
+        });
+      });
+    }
   } catch (err) {
     container.innerHTML = `
       <div class="empty-state">
@@ -96,9 +107,9 @@ export async function render(container) {
   }
 }
 
-export function startAutoRefresh(container) {
+export function startAutoRefresh(container, onNavigate) {
   stopAutoRefresh();
-  refreshInterval = setInterval(() => render(container), 10000);
+  refreshInterval = setInterval(() => render(container, onNavigate), 10000);
 }
 
 export function stopAutoRefresh() {
