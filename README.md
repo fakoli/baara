@@ -1,18 +1,136 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Baara Banner" width="100%">
+  <img src="assets/banner.png" alt="Baara" width="100%">
 </p>
 
 <p align="center">
-  <img src="assets/logo.png" alt="Baara Logo" width="80">
+  <img src="assets/logo.png" alt="Baara" width="80">
 </p>
-
-<h1 align="center">Baara</h1>
 
 <p align="center">
-  <em>"Baara" means "work" in Mandinka.</em>
+  <strong>Baara</strong> — <em>"work" in Mandinka</em>
 </p>
 
-An agentic, chat-first task execution system built on the Claude Agent SDK. Talk to Claude in natural language to create, run, and manage tasks -- or use the CLI and cron scheduler. Priority queues, failure triage, and at-least-once delivery semantics. Runs as a single binary on a Mac mini.
+<p align="center">
+  An agentic task execution system powered by the Claude Agent SDK.<br>
+  Chat-first interface. Priority queues. Failure triage. Built for personal automation.
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#features">Features</a> •
+  <a href="#cli">CLI</a> •
+  <a href="#api">API</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="LICENSE">License</a>
+</p>
+
+---
+
+## Quick Start
+
+```bash
+# Install dependencies
+bun install
+
+# Configure (subscription mode — no API key needed)
+cp .env.example .env
+
+# Start the server
+bun start
+# → http://localhost:3000
+```
+
+Open the web UI, type a message, and Baara handles the rest:
+
+> *"Create a task that checks my email every morning at 6am"*
+
+Claude creates the task, sets the cron schedule, picks the right tools, and confirms — all through natural language.
+
+---
+
+## Features
+
+### Chat-First Interface
+
+Talk to Claude in natural language. Baara exposes **19 MCP tools** via an in-process server — Claude picks the right tool for every request. Responses stream in real-time via SSE.
+
+- **Slash command autocomplete** — type `/` for 153+ discovered skills with Tab completion
+- **Plan mode** — toggle structured planning before execution
+- **Session persistence** — conversations survive page reloads
+- **Context-aware prompts** — Claude knows your task count, failures, and queue state
+
+### Task Management
+
+- **3-step creation wizard** — Basics → Execution → Schedule & Tools
+- **Per-task tool selection** — choose which tools (WebSearch, Bash, Read, etc.) each task can use
+- **Cron scheduling** — presets or custom expressions with human-readable preview
+- **Run-once guard** — prevents duplicate execution of the same task
+- **Configurable system prompt** — customize Claude's instructions per-instance
+
+### Execution Engine
+
+- **Dual execution modes** — Direct (immediate) or Queued (priority pipeline)
+- **Priority queues** — P0 (critical) through P3 (background), FIFO within tier
+- **At-least-once delivery** — configurable retry with exponential backoff
+- **Failure triage** — exhausted retries flag jobs for human attention
+- **Health monitoring** — detects slow and unresponsive jobs
+- **JSONL execution logs** — append-only, streamable, `jq`-compatible
+
+### Three Interfaces
+
+| Interface | Description |
+|-----------|-------------|
+| **Web UI** | Chat + collapsible context panel (tasks, jobs, queues, logs) |
+| **CLI** | `baara tasks`, `baara jobs`, `baara logs`, `baara status` |
+| **Cron** | Scheduled execution via Croner — fires automatically |
+
+All three share the same service layer. No duplicated logic.
+
+---
+
+## CLI
+
+```bash
+baara tasks list                     # List all tasks
+baara tasks create --name <n> --prompt <p> [--cron <expr>]
+baara tasks run <name>               # Execute immediately
+baara tasks toggle <name>            # Enable/disable
+
+baara jobs list <task>               # Job history
+baara jobs triage                    # Failed jobs needing attention
+baara jobs retry <job-id>            # Re-dispatch
+
+baara logs                           # Execution logs
+baara logs --level error             # Filter by level
+baara logs --job <id>                # Per-job logs
+
+baara commands list                  # Discovered skills + plugins
+baara commands search "email"        # Search by keyword
+baara status                         # System overview
+```
+
+---
+
+## API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/chat` | Chat with Claude (SSE stream) |
+| `GET` | `/api/tasks` | List tasks |
+| `POST` | `/api/tasks` | Create task |
+| `POST` | `/api/tasks/:id/run` | Execute immediately |
+| `POST` | `/api/tasks/:id/submit` | Dispatch to queue |
+| `GET` | `/api/tasks/:id/jobs` | Job history |
+| `GET` | `/api/jobs/triage` | Triaged jobs |
+| `GET` | `/api/queues` | Queue status |
+| `GET` | `/api/logs` | Execution logs |
+| `GET` | `/api/projects` | Project management |
+| `GET` | `/api/commands` | Discovered skills + commands |
+| `GET` | `/api/health` | Health check |
+
+---
+
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -20,156 +138,82 @@ An agentic, chat-first task execution system built on the Claude Agent SDK. Talk
 │                                                          │
 │  ┌─────────────────────┐  ┌─────────────────────────┐   │
 │  │  Chat (Claude AI)    │  │  Context Panel          │   │
-│  │  Natural language    │  │  (collapsible)          │   │
-│  │  task management     │  │                         │   │
-│  │                      │  │  Tasks / Jobs / Queues  │   │
-│  │  "Create a task..."  │  │  Auto-updates on tool   │   │
-│  │  ⚡ create_task      │  │  calls                  │   │
-│  │  ✓ Created!          │  │                         │   │
+│  │  19 MCP tools        │  │  Tasks / Jobs / Queues  │   │
+│  │  SSE streaming       │  │  Logs / Triage          │   │
 │  └─────────────────────┘  └─────────────────────────┘   │
 │                                                          │
-│  14 Baara Tools (MCP) ──► Services ──► SQLite            │
-│  CLI (baara) ────────────►                               │
-│  Cron Scheduler ─────────►                               │
+│  Services ──► Dispatcher ──► Executor ──► SQLite         │
+│  CLI ────────►                ↕                           │
+│  Cron ───────►          Queue Manager                    │
 └──────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
-
-```bash
-# Install
-bun install
-
-# Configure
-cp .env.example .env
-# Default: subscription mode (uses Claude CLI, no API key needed)
-# Optional: set BAARA_AUTH_MODE=api_key and add ANTHROPIC_API_KEY
-
-# Start server (http://0.0.0.0:3000)
-bun start
-
-# Or use the CLI
-bun run src/cli/index.ts tasks list
-bun run src/cli/index.ts status
-```
-
-## Features
-
-- **Chat-first UI** — Claude-powered agentic chat. Describe what you want in natural language and Claude calls Baara tools to make it happen.
-- **14 custom tools** — Exposed via in-process MCP server (create_task, run_task, list_jobs, etc.). Claude picks the right tool for every request.
-- **SSE streaming** — Real-time streamed responses from Claude, including tool use and results.
-- **Dual auth modes** — Use your Claude subscription (free within limits) or an API key (per-token billing).
-- **Collapsible context panel** — Chat is the primary interface; tasks, jobs, queues, and logs live in a collapsible side panel that auto-updates on tool calls.
-- **Multi-step task creation wizard** — 3-step wizard (Basics, Execution, Schedule & Tools) with queue selection, cron presets, and "Create & Run Now" option.
-- **Plan mode** — Toggle plan mode in chat for structured execution planning. Claude presents a numbered plan before taking action.
-- **Configurable system prompt** — Custom system prompt saved in settings, merged into every chat context.
-- **Per-task tool selection** — Choose which tools (WebSearch, Bash, Read, Write, etc.) each task is allowed to use.
-- **JSONL execution logging** — Every task execution is logged to `~/.nexus/logs/execution.jsonl` with level, timestamp, task name, and job ID. Viewable in the LOGS tab, via API, or CLI (`baara logs`).
-- **Priority queues** — P0 (critical) through P3 (background) with FIFO tie-breaking.
-- **Dual execution modes** — Queued (full pipeline) or Direct (immediate, ideal for Mac mini).
-- **Agent SDK integration** — Built-in tools (WebSearch, WebFetch, Bash), MCP servers, subagents.
-- **Failure triage** — Failed jobs flagged for human attention after max retries exhausted.
-- **Health monitoring** — Detects slow/unresponsive jobs based on per-task timeout thresholds.
-- **Three interfaces** — Web UI (chat + context panel), CLI (`baara`), and scheduled cron. All share the same service layer.
-
-## Authentication
-
-Baara supports two authentication modes:
-
-### Subscription Mode (default)
-Uses your Claude Pro/Max/Team subscription via the Claude Code CLI.
-No API key needed -- free within your subscription limits.
-
-### API Key Mode
-Uses `ANTHROPIC_API_KEY` for per-token billing.
-Set `BAARA_AUTH_MODE=api_key` in `.env`.
-
-## Chat API
-
-`POST /api/chat` -- SSE streaming endpoint
-
-**Request:**
-```json
-{ "message": "Create a task that..." }
-```
-
-**Response:** `text/event-stream` with events:
-| Event type | Description |
-|------------|-------------|
-| `text` | Claude's response text (streaming) |
-| `tool_use` | Claude calling a Baara tool |
-| `tool_result` | Tool execution result |
-| `result` | Final response with usage stats |
-| `done` | Stream complete |
-
-Claude has access to 14 Baara tools via an in-process MCP server, including `create_task`, `run_task`, `list_tasks`, `list_jobs`, `get_queue_status`, and more. Tools call service functions directly -- no subprocess or HTTP self-calls.
-
-## CLI Reference
-
-```bash
-baara tasks list                    # List all tasks
-baara tasks create --name <n> --prompt <p> [--cron <expr>] [--type agent_sdk|raw_code]
-baara tasks run <name>              # Execute immediately (direct mode)
-baara tasks submit <name>           # Dispatch to queue
-baara tasks toggle <name>           # Enable/disable
-
-baara jobs list <task>              # Job history
-baara jobs triage                   # Failed jobs needing attention
-baara jobs retry <job-id>           # Re-dispatch a triaged job
-
-baara queues list                   # Queue depths
-baara status                        # Full system overview
-baara templates list                # Browse templates
-baara logs                          # View execution logs
-baara logs --level error            # Filter by level
-baara logs --job <id>               # Filter by job ID
-```
-
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/chat` | Chat with Claude (SSE stream) |
-| GET | `/api/tasks` | List tasks |
-| POST | `/api/tasks` | Create task |
-| POST | `/api/tasks/:id/run` | Execute immediately |
-| POST | `/api/tasks/:id/submit` | Dispatch to queue |
-| GET | `/api/tasks/:id/jobs` | Job history |
-| GET | `/api/jobs/triage` | Triaged jobs |
-| GET | `/api/queues` | Queue status |
-| GET | `/api/logs` | System-wide execution logs |
-| GET | `/api/jobs/:id/logs` | Per-job execution logs |
-| GET | `/api/status` | System overview |
-| GET | `/api/health` | Health check |
-
-## Data Storage
-
-All Baara data lives under `~/.nexus/` (configurable via `NEXUS_DIR` env var):
+### Data Storage
 
 ```
 ~/.nexus/
-├── baara.db              # SQLite database (tasks, jobs, queues, sessions)
+├── baara.db                # SQLite — tasks, jobs, queues, projects
 ├── logs/
-│   └── execution.jsonl   # Append-only execution logs (JSONL format)
-└── ...
+│   └── execution.jsonl     # Append-only execution logs
+├── sessions/               # Chat session data
+└── briefings/              # Scheduled task output
 ```
 
-- **Database** — SQLite via `bun:sqlite`. Override location with `DB_PATH` env var.
-- **Execution logs** — One JSON object per line with `ts`, `level`, `msg`, `taskName`, `jobId` fields. Queryable via `GET /api/logs`, `GET /api/jobs/:id/logs`, or `baara logs` CLI.
-
-## Tech Stack
+### Tech Stack
 
 | Component | Choice |
 |-----------|--------|
-| Runtime | Bun |
-| Web server | Hono |
-| Database | bun:sqlite (embedded) |
-| Scheduler | Croner |
-| AI execution | Claude Agent SDK |
-| AI chat | Claude API (streaming via SSE) |
-| Tool integration | In-process MCP server (Agent SDK) |
+| Runtime | [Bun](https://bun.sh) |
+| Web Framework | [Hono](https://hono.dev) |
+| Database | bun:sqlite |
+| Scheduler | [Croner](https://github.com/Hexagon/croner) |
+| AI | [Claude Agent SDK](https://docs.anthropic.com/en/docs/agent-sdk) |
 | Frontend | Vanilla JS (no build step) |
+| Tests | [Playwright](https://playwright.dev) |
+
+---
+
+## Authentication
+
+**Subscription mode** (default) — uses your Claude Pro/Max/Team subscription via the Claude Code CLI. No API key needed.
+
+**API key mode** — set `BAARA_AUTH_MODE=api_key` and `ANTHROPIC_API_KEY` in `.env` for per-token billing.
+
+---
+
+## Security
+
+- API key authentication (optional `BAARA_API_KEY`)
+- Exact-origin CORS allowlist
+- CSP + X-Frame-Options + X-Content-Type-Options headers
+- Rate limiting (10 calls/min on execution endpoints)
+- Input validation with clamped timeouts, retries, and budgets
+- Graceful shutdown with WAL checkpoint
+- Crash recovery for orphaned jobs
+
+See [`docs/security/`](docs/security/) for the full security review.
+
+---
+
+## Development
+
+```bash
+bun start                    # Start server
+bunx tsc --noEmit            # Typecheck
+bunx playwright test         # Run tests (39+ test cases)
+baara logs --follow          # Tail execution logs
+```
+
+See [CLAUDE.md](CLAUDE.md) for architecture details and conventions.
+
+---
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+---
+
+<p align="center">
+  <sub>Built with the Claude Agent SDK. Inspired by Mandinka craftsmanship.</sub>
+</p>
