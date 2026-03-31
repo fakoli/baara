@@ -124,6 +124,11 @@ export const api = {
     return request(`/api/projects/${id}`, { method: 'DELETE' });
   },
 
+  // Integrations
+  getClaudeCodeIntegration() {
+    return request('/api/integrations/claude-code');
+  },
+
   // Chat Sessions
   listChatSessions() {
     return request('/api/chat/sessions');

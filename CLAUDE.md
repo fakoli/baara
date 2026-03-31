@@ -23,10 +23,11 @@ make baara ARGS="tasks list"       # Alternative CLI via Makefile
 - `src/server/` — Hono API routes with auth + rate limiting + CSP
 - `src/chat/` — Claude-powered agentic chat (tools, system prompt, SSE endpoint)
 - `src/cli/` — Commander-based CLI (`baara` command)
+- `src/integrations/` — Claude Code plugin/command discovery from ~/.claude/
 - `web/` — Vanilla JS frontend (no build step)
 
 ## Chat Architecture
-- `src/chat/tools.ts` — 14 Baara tools via Agent SDK tool() + createSdkMcpServer()
+- `src/chat/tools.ts` — 17 Baara tools via Agent SDK tool() + createSdkMcpServer()
 - `src/chat/system-prompt.ts` — System prompt for chat Claude
 - `src/server/routes/chat.ts` — POST /api/chat SSE endpoint
 - Chat uses `streamSSE()` from `hono/streaming`

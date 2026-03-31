@@ -18,6 +18,9 @@ const TOOL_LABELS = {
   'list triage': 'Checking triage',
   'get status': 'Checking system status',
   'list templates': 'Browsing templates',
+  'list projects': 'Listing projects',
+  'set active project': 'Switching project',
+  'discover plugins': 'Discovering Claude Code plugins',
 };
 
 /**

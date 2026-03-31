@@ -44,6 +44,13 @@ export function showSettingsPanel() {
       </div>
 
       <div class="settings-section">
+        <div class="settings-section-title">Claude Code Integrations</div>
+        <div id="settings-integrations">
+          <div class="loading-state"><div class="spinner"></div>Discovering plugins...</div>
+        </div>
+      </div>
+
+      <div class="settings-section">
         <div class="settings-section-title">System Info</div>
         <div id="settings-system-info">
           <div class="loading-state"><div class="spinner"></div>Loading...</div>
@@ -89,6 +96,9 @@ export function showSettingsPanel() {
   // Load queue data
   loadQueues(drawer.querySelector('#settings-queues'));
 
+  // Load integrations
+  loadIntegrations(drawer.querySelector('#settings-integrations'));
+
   // Load system info
   loadSystemInfo(drawer.querySelector('#settings-system-info'));
 }
@@ -121,6 +131,53 @@ async function loadQueues(container) {
     container.innerHTML = `
       <div style="color: var(--red); font-size: 12px;">
         Could not load queues: ${escapeHtml(err.message)}
+      </div>
+    `;
+  }
+}
+
+async function loadIntegrations(container) {
+  try {
+    const data = await api.getClaudeCodeIntegration();
+    const plugins = data.plugins || [];
+    const commands = data.commands || [];
+
+    if (plugins.length === 0 && commands.length === 0) {
+      container.innerHTML = `
+        <div style="color: var(--text-dim); font-size: 13px; padding: 8px 0;">
+          No Claude Code plugins or commands found in ~/.claude/
+        </div>
+      `;
+      return;
+    }
+
+    let html = '';
+
+    if (plugins.length > 0) {
+      html += `<div style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px;">${plugins.length} plugin${plugins.length === 1 ? '' : 's'} installed</div>`;
+      html += plugins.map(p => `
+        <div class="settings-queue-item">
+          <div class="settings-queue-name">${escapeHtml(p.name)}<span style="color: var(--text-dim); font-size: 11px; margin-left: 6px;">v${escapeHtml(p.version)}</span></div>
+          <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">${escapeHtml(p.description || 'No description')}</div>
+          ${p.author ? `<div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">by ${escapeHtml(p.author)} &middot; ${escapeHtml(p.marketplace)}</div>` : `<div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${escapeHtml(p.marketplace)}</div>`}
+        </div>
+      `).join('');
+    }
+
+    if (commands.length > 0) {
+      html += `<div style="font-size: 12px; color: var(--text-dim); margin: 12px 0 6px 0;">${commands.length} custom command${commands.length === 1 ? '' : 's'}</div>`;
+      html += commands.map(cmd => `
+        <div class="settings-queue-item">
+          <div class="settings-queue-name">/${escapeHtml(cmd)}</div>
+        </div>
+      `).join('');
+    }
+
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `
+      <div style="color: var(--text-dim); font-size: 12px; padding: 8px 0;">
+        Could not discover integrations: ${escapeHtml(err.message)}
       </div>
     `;
   }

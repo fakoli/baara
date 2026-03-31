@@ -2,6 +2,8 @@
 
 import { Hono } from "hono";
 import type { Store } from "../../db/store.ts";
+import { discoverAll } from "../../integrations/claude-code.ts";
+import { log } from "../../logger.ts";
 
 export function systemRoutes(store: Store) {
   const app = new Hono();
@@ -30,6 +32,17 @@ export function systemRoutes(store: Store) {
     const info = store.getQueueInfo(c.req.param("name"));
     if (!info) return c.json({ error: "Queue not found" }, 404);
     return c.json(info);
+  });
+
+  // Claude Code integration: discovered plugins and commands
+  app.get("/integrations/claude-code", async (c) => {
+    try {
+      const integration = await discoverAll();
+      return c.json(integration);
+    } catch (err) {
+      log("error", "integrations", "Claude Code discovery failed", { error: String(err) });
+      return c.json({ error: "Could not discover Claude Code integrations" }, 500);
+    }
   });
 
   return app;

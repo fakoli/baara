@@ -6,7 +6,8 @@ import type { TaskService } from "../services/task-service.ts";
 import type { JobService } from "../services/job-service.ts";
 import type { TemplateService } from "../services/template-service.ts";
 import type { Store } from "../db/store.ts";
-import type { Task, Project } from "../types.ts";
+import type { Task } from "../types.ts";
+import { discoverAll } from "../integrations/claude-code.ts";
 
 // Helper: resolve a task by name or ID, return null if not found
 function resolveTask(taskService: TaskService, nameOrId: string): Task | null {
@@ -385,6 +386,38 @@ export function createBaaraTools(deps: {
     },
   );
 
+  // 17. discover_plugins — Claude Code plugin/command discovery
+  const discoverPlugins = tool(
+    "discover_plugins",
+    "Discover installed Claude Code plugins, skills, and custom commands from ~/.claude/",
+    {},
+    async () => {
+      try {
+        const integration = await discoverAll();
+        const summary = {
+          pluginCount: integration.plugins.length,
+          commandCount: integration.commands.length,
+          plugins: integration.plugins.map((p) => ({
+            name: p.name,
+            description: p.description,
+            version: p.version,
+            author: p.author,
+            marketplace: p.marketplace,
+            keywords: p.keywords,
+          })),
+          commands: integration.commands,
+          discoveredAt: integration.discoveredAt,
+        };
+        return ok(summary);
+      } catch (err) {
+        return {
+          content: [{ type: "text" as const, text: `Discovery failed: ${String(err)}` }],
+          isError: true,
+        };
+      }
+    },
+  );
+
   return createSdkMcpServer({
     name: "baara",
     tools: [
@@ -404,6 +437,7 @@ export function createBaaraTools(deps: {
       listTemplates,
       listProjectsTool,
       setActiveProject,
+      discoverPlugins,
     ],
   });
 }

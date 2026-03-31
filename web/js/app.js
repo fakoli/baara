@@ -108,6 +108,9 @@ function handleToolCallEvent(event) {
       projectSwitcher.update(state.activeProjectId);
       renderAll();
       break;
+    case 'discover_plugins':
+      // No special panel navigation needed — result shown in chat
+      break;
   }
 }
 
