@@ -11,6 +11,7 @@ import { TaskService } from "./services/task-service.ts";
 import { JobService } from "./services/job-service.ts";
 import { TemplateService } from "./services/template-service.ts";
 import { createApp } from "./server/app.ts";
+import { createBaaraTools } from "./chat/tools.ts";
 
 const config = loadConfig();
 
@@ -31,6 +32,9 @@ const templateService = new TemplateService(store, taskService);
 // Scheduler
 const scheduler = new Scheduler(store, dispatcher);
 
+// Chat — MCP server with Baara tools
+const baaraServer = createBaaraTools({ taskService, jobService, templateService, store });
+
 // Server
 const apiKey = process.env["BAARA_API_KEY"];
 
@@ -40,6 +44,7 @@ const app = createApp({
   jobService,
   templateService,
   scheduler,
+  baaraServer,
   staticDir: config.staticDir,
   apiKey,
 });

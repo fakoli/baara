@@ -4,12 +4,14 @@ import * as chat from './chat.js';
 import * as contextPanel from './components/context-panel.js';
 import * as tabBar from './components/tab-bar.js';
 import * as triageBadge from './components/triage-badge.js';
+import { showCreateTaskModal } from './components/create-task-modal.js';
 
 // --- State ---
 const state = {
   selectedTask: null,
   activeTab: 'overview',
   contextView: 'overview', // overview | task-detail | tasks | jobs | queues | triage
+  panelCollapsed: localStorage.getItem('panelCollapsed') === 'true',
 
   onStateChange: null,
   onNavigate: null,
@@ -21,6 +23,10 @@ const tabBarEl = document.getElementById('tab-bar');
 const triageBadgeEl = document.getElementById('triage-badge');
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
+const panelToggleBtn = document.getElementById('panel-toggle');
+const contextPanelEl = document.getElementById('context-panel');
+const resizeHandle = document.getElementById('resize-handle');
+const createTaskBtn = document.getElementById('create-task-btn');
 
 // --- Render Loop ---
 
@@ -55,26 +61,107 @@ function handleTabChange(tabId) {
   renderAll();
 }
 
-function handleChatCommand(cmd) {
-  switch (cmd.type) {
-    case 'navigate':
-      state.contextView = cmd.view;
-      state.selectedTask = null;
+// --- Tool Call Event Handler ---
 
-      // Sync tab bar (triage has no tab, falls through to overview highlight)
-      if (['overview', 'tasks', 'jobs', 'queues'].includes(cmd.view)) {
-        state.activeTab = cmd.view;
-      }
+function handleToolCallEvent(event) {
+  const toolName = (event.name || '').replace('mcp__baara__', '');
+  switch (toolName) {
+    case 'create_task':
+    case 'update_task':
+    case 'get_task':
+    case 'toggle_task':
+      refreshAndShowTask(event);
+      break;
+    case 'list_tasks':
+      state.contextView = 'tasks';
+      state.activeTab = 'tasks';
       renderAll();
       break;
-
-    case 'select-task':
-      state.selectedTask = cmd.task;
-      state.contextView = 'task-detail';
-      // Don't change activeTab -- leave it wherever it was
+    case 'list_jobs':
+    case 'run_task':
+    case 'submit_task':
+      state.contextView = 'jobs';
+      state.activeTab = 'jobs';
+      renderAll();
+      break;
+    case 'list_triage':
+    case 'retry_job':
+      state.contextView = 'triage';
+      renderAll();
+      break;
+    case 'get_status':
+      state.contextView = 'overview';
+      state.activeTab = 'overview';
       renderAll();
       break;
   }
+}
+
+function refreshAndShowTask(event) {
+  // Navigate to the tasks view; the context panel will re-fetch
+  state.contextView = 'tasks';
+  state.activeTab = 'tasks';
+  renderAll();
+}
+
+// --- Panel Toggle ---
+
+function togglePanel() {
+  state.panelCollapsed = !state.panelCollapsed;
+  localStorage.setItem('panelCollapsed', String(state.panelCollapsed));
+  applyPanelState();
+}
+
+function applyPanelState() {
+  if (state.panelCollapsed) {
+    contextPanelEl.classList.add('collapsed');
+    resizeHandle.style.display = 'none';
+  } else {
+    contextPanelEl.classList.remove('collapsed');
+    resizeHandle.style.display = '';
+  }
+}
+
+// --- Resize Handle ---
+
+function initResize() {
+  let isResizing = false;
+
+  resizeHandle.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    resizeHandle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const mainEl = document.getElementById('main');
+    const mainRect = mainEl.getBoundingClientRect();
+    const newContextWidth = mainRect.right - e.clientX;
+    const clampedWidth = Math.max(200, Math.min(newContextWidth, mainRect.width - 400));
+    contextPanelEl.style.width = clampedWidth + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!isResizing) return;
+    isResizing = false;
+    resizeHandle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+}
+
+// --- Create Task Button ---
+
+function handleCreateTask() {
+  showCreateTaskModal((task) => {
+    // On created, navigate to tasks view and refresh
+    state.contextView = 'tasks';
+    state.activeTab = 'tasks';
+    renderAll();
+  });
 }
 
 // --- State Change Callback ---
@@ -84,12 +171,24 @@ state.onStateChange = () => {
 
 // --- Init ---
 function init() {
-  // Chat
+  // Chat — use new onToolCallCallback contract
   chat.init({
     messagesEl: chatMessages,
     inputEl: chatInput,
-    onCommandCallback: handleChatCommand,
+    onToolCallCallback: (event) => {
+      handleToolCallEvent(event);
+    },
   });
+
+  // Panel toggle
+  panelToggleBtn.addEventListener('click', togglePanel);
+  applyPanelState();
+
+  // Resize handle
+  initResize();
+
+  // Create Task button
+  createTaskBtn.addEventListener('click', handleCreateTask);
 
   // Triage badge polling
   triageBadge.startPolling(triageBadgeEl, () => {
@@ -103,7 +202,7 @@ function init() {
 
   // Re-focus chat input when clicking outside interactive areas
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('button') && !e.target.closest('a') && !e.target.closest('input')) {
+    if (!e.target.closest('button') && !e.target.closest('a') && !e.target.closest('input') && !e.target.closest('textarea')) {
       chatInput.focus();
     }
   });

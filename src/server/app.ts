@@ -7,11 +7,13 @@ import { taskRoutes } from "./routes/tasks.ts";
 import { jobRoutes } from "./routes/jobs.ts";
 import { templateRoutes } from "./routes/templates.ts";
 import { systemRoutes } from "./routes/system.ts";
+import { chatRoutes } from "./routes/chat.ts";
 import type { TaskService } from "../services/task-service.ts";
 import type { JobService } from "../services/job-service.ts";
 import type { TemplateService } from "../services/template-service.ts";
 import type { Store } from "../db/store.ts";
 import type { Scheduler } from "../engine/scheduler.ts";
+import type { McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 
 export interface AppDeps {
   store: Store;
@@ -19,6 +21,7 @@ export interface AppDeps {
   jobService: JobService;
   templateService: TemplateService;
   scheduler: Scheduler;
+  baaraServer: McpSdkServerConfigWithInstance;
   staticDir: string;
   apiKey?: string;
 }
@@ -92,11 +95,19 @@ export function createApp(deps: AppDeps) {
     }
     await next();
   });
+  app.use("/api/chat", async (c, next) => {
+    const ip = c.req.header("x-forwarded-for") || "local";
+    if (!checkRateLimit(ip)) {
+      return c.json({ error: "Rate limit exceeded. Max 10 chat calls per minute." }, 429);
+    }
+    await next();
+  });
 
   // API routes
   app.route("/api/tasks", taskRoutes(deps.taskService, deps.jobService, deps.scheduler));
   app.route("/api/jobs", jobRoutes(deps.jobService));
   app.route("/api/templates", templateRoutes(deps.templateService));
+  app.route("/api/chat", chatRoutes(deps.baaraServer));
   app.route("/api", systemRoutes(deps.store));
 
   // Job list nested under tasks
