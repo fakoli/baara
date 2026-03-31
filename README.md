@@ -1,6 +1,16 @@
-# Baara
+<p align="center">
+  <img src="assets/banner.png" alt="Baara Banner" width="100%">
+</p>
 
-> *"Baara"* means "work" in Bambara/Mandinka.
+<p align="center">
+  <img src="assets/logo.png" alt="Baara Logo" width="80">
+</p>
+
+<h1 align="center">Baara</h1>
+
+<p align="center">
+  <em>"Baara" means "work" in Bambara/Mandinka.</em>
+</p>
 
 An agentic, chat-first task execution system built on the Claude Agent SDK. Talk to Claude in natural language to create, run, and manage tasks -- or use the CLI and cron scheduler. Priority queues, failure triage, and at-least-once delivery semantics. Runs as a single binary on a Mac mini.
 
