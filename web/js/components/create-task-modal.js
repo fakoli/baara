@@ -25,15 +25,18 @@ export function showCreateTaskModal(onCreated) {
         <label class="form-label">Prompt</label>
         <textarea class="form-textarea" id="modal-prompt" rows="4" placeholder="What should this task do?"></textarea>
 
+        <label class="form-label">Description (optional)</label>
+        <input type="text" class="form-input" id="modal-description" placeholder="Brief description of this task">
+
         <label class="form-label">Cron Expression (optional)</label>
-        <input type="text" class="form-input" id="modal-cron" placeholder="0 6 * * *">
+        <input type="text" class="form-input" id="modal-cron" placeholder="0 6 * * * — leave empty for manual-only">
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
             <label class="form-label">Type</label>
             <select class="form-input" id="modal-type">
               <option value="agent_sdk">Agent SDK</option>
-              <option value="raw_code">Raw Code</option>
+              <option value="raw_code">Raw Code (Shell)</option>
             </select>
           </div>
           <div>
@@ -47,10 +50,28 @@ export function showCreateTaskModal(onCreated) {
           </div>
         </div>
 
-        <label class="form-label">Queue</label>
-        <select class="form-input" id="modal-queue">
-          <option value="default">default</option>
-        </select>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+          <div>
+            <label class="form-label">Queue</label>
+            <select class="form-input" id="modal-queue">
+              <option value="default">default</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Mode</label>
+            <select class="form-input" id="modal-mode">
+              <option value="direct" selected>Direct</option>
+              <option value="queued">Queued</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Max Retries</label>
+            <input type="number" class="form-input" id="modal-retries" value="0" min="0" max="10">
+          </div>
+        </div>
+
+        <label class="form-label">Timeout (seconds)</label>
+        <input type="number" class="form-input" id="modal-timeout" value="300" min="1" max="3600" placeholder="300">
       </div>
       <div class="modal-footer">
         <button class="btn cancel-btn">Cancel</button>
@@ -118,14 +139,7 @@ export function showCreateTaskModal(onCreated) {
     btn.textContent = 'Creating...';
 
     try {
-      const task = await api.createTask({
-        name,
-        prompt,
-        cronExpression: overlay.querySelector('#modal-cron').value.trim() || null,
-        executionType: overlay.querySelector('#modal-type').value,
-        priority: parseInt(overlay.querySelector('#modal-priority').value),
-        targetQueue: overlay.querySelector('#modal-queue').value,
-      });
+      const task = await api.createTask(gatherFormData(overlay));
       close();
       if (onCreated) onCreated(task);
     } catch (err) {
@@ -148,14 +162,7 @@ export function showCreateTaskModal(onCreated) {
     btn.textContent = 'Creating...';
 
     try {
-      const task = await api.createTask({
-        name,
-        prompt,
-        cronExpression: overlay.querySelector('#modal-cron').value.trim() || null,
-        executionType: overlay.querySelector('#modal-type').value,
-        priority: parseInt(overlay.querySelector('#modal-priority').value),
-        targetQueue: overlay.querySelector('#modal-queue').value,
-      });
+      const task = await api.createTask(gatherFormData(overlay));
 
       btn.textContent = 'Running...';
       await api.runTask(task.id);
@@ -194,4 +201,20 @@ export function showCreateTaskModal(onCreated) {
 
   // Focus the name field
   overlay.querySelector('#modal-name').focus();
+}
+
+function gatherFormData(overlay) {
+  const timeoutSec = parseInt(overlay.querySelector('#modal-timeout').value) || 300;
+  return {
+    name: overlay.querySelector('#modal-name').value.trim(),
+    prompt: overlay.querySelector('#modal-prompt').value.trim(),
+    description: overlay.querySelector('#modal-description').value.trim() || undefined,
+    cronExpression: overlay.querySelector('#modal-cron').value.trim() || null,
+    executionType: overlay.querySelector('#modal-type').value,
+    priority: parseInt(overlay.querySelector('#modal-priority').value),
+    targetQueue: overlay.querySelector('#modal-queue').value,
+    executionMode: overlay.querySelector('#modal-mode').value,
+    maxRetries: parseInt(overlay.querySelector('#modal-retries').value) || 0,
+    timeoutMs: timeoutSec * 1000,
+  };
 }

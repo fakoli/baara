@@ -30,6 +30,11 @@ export async function render(container, { task, onTaskDeleted, onNavigate }) {
 
     ${task.description ? `<div class="description-text">${escapeHtml(task.description)}</div>` : ''}
 
+    <div style="margin-bottom: 16px;">
+      <span class="card-label">Prompt</span>
+      <div class="task-prompt-display">${escapeHtml(task.prompt || 'No prompt set')}</div>
+    </div>
+
     <div class="task-meta-grid">
       <div class="task-meta-item">
         <span class="card-label">Cron</span>

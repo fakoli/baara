@@ -569,8 +569,8 @@ body {
 
 /* Task list grid */
 .task-list-grid {
-  grid-template-columns: 8px 1fr 120px 80px 100px;
-  gap: 12px;
+  grid-template-columns: 8px minmax(80px, 1fr) 90px 60px 70px;
+  gap: 8px;
 }
 
 /* Job list grid */
@@ -2279,3 +2279,20 @@ select.form-input:not(.modal select.form-input) {
 .preview-text { font-size: 11px; font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
 .preview-error { color: var(--red); }
 .preview-output { color: var(--text-dim); }
+
+/* === Task Prompt Display === */
+.task-prompt-display {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 150px;
+  overflow-y: auto;
+}
