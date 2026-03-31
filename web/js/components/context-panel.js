@@ -99,8 +99,8 @@ async function renderTaskList(container, state) {
         <div class="list-row task-list-grid" data-task-id="${t.id}">
           <span class="status-dot ${t.enabled ? 'green' : 'gray'}"></span>
           <span class="list-cell">${escapeHtml(t.name)}</span>
-          <span class="list-cell mono">${t.cronExpression || '--'}</span>
-          <span class="list-cell secondary">${t.executionMode}</span>
+          <span class="list-cell mono">${escapeHtml(t.cronExpression || '--')}</span>
+          <span class="list-cell secondary">${escapeHtml(t.executionMode)}</span>
           <span class="list-cell mono secondary">${timeAgo(t.updatedAt)}</span>
         </div>
       `).join('')}
@@ -167,17 +167,17 @@ async function renderTriage(container, state) {
     container.innerHTML = `
       <div class="section-title">Triage Jobs (${triageJobs.length})</div>
       ${triageJobs.map(job => `
-        <div class="triage-job-card" data-job-id="${job.id}">
+        <div class="triage-job-card" data-job-id="${escapeHtml(job.id)}">
           <div class="triage-job-header">
             <span style="display: flex; align-items: center; gap: 8px;">
               <span class="status-dot red"></span>
               <strong style="font-size: 13px;">${escapeHtml(taskMap[job.taskId] || 'Unknown Task')}</strong>
             </span>
-            <span class="triage-job-id">${job.id.slice(0, 8)}</span>
+            <span class="triage-job-id">${escapeHtml(job.id.slice(0, 8))}</span>
           </div>
           ${job.error ? `<div class="triage-job-error">${escapeHtml(job.error)}</div>` : ''}
           <div style="display: flex; align-items: center; justify-content: space-between;">
-            <span class="relative-time">${timeAgo(job.createdAt)} / attempt ${job.attempt}</span>
+            <span class="relative-time">${timeAgo(job.createdAt)} / attempt ${parseInt(job.attempt, 10) || 0}</span>
             <div class="triage-job-actions">
               <button class="btn sm primary retry-btn" data-job-id="${job.id}">Retry</button>
               <button class="btn sm cancel-btn" data-job-id="${job.id}">Dismiss</button>

@@ -1,7 +1,43 @@
 // Baara — Task Service
 
 import type { Store } from "../db/store.ts";
-import type { Task, CreateTaskInput, UpdateTaskInput } from "../types.ts";
+import type { Task, CreateTaskInput, UpdateTaskInput, ExecutionType } from "../types.ts";
+
+const MAX_TIMEOUT_MS = 3_600_000; // 1 hour
+const MAX_RETRIES = 10;
+const VALID_EXECUTION_TYPES: ExecutionType[] = ["agent_sdk", "wasm", "raw_code"];
+const VALID_PERMISSION_MODES = ["default", "acceptEdits", "bypassPermissions"];
+
+function sanitizeInput(input: CreateTaskInput | UpdateTaskInput): void {
+  if ("timeoutMs" in input && input.timeoutMs !== undefined) {
+    input.timeoutMs = Math.min(Math.max(input.timeoutMs, 1000), MAX_TIMEOUT_MS);
+  }
+  if ("maxRetries" in input && input.maxRetries !== undefined) {
+    input.maxRetries = Math.min(Math.max(input.maxRetries, 0), MAX_RETRIES);
+  }
+  if ("executionType" in input && input.executionType !== undefined) {
+    if (!VALID_EXECUTION_TYPES.includes(input.executionType)) {
+      throw new Error(`Invalid executionType: ${input.executionType}. Must be one of: ${VALID_EXECUTION_TYPES.join(", ")}`);
+    }
+  }
+  if ("agentConfig" in input && input.agentConfig) {
+    const ac = input.agentConfig;
+    // Validate permissionMode if provided
+    if (ac.permissionMode && !VALID_PERMISSION_MODES.includes(ac.permissionMode)) {
+      throw new Error(`Invalid permissionMode: ${ac.permissionMode}`);
+    }
+    // Enforce maxBudgetUsd ceiling
+    if (ac.maxBudgetUsd !== undefined) {
+      ac.maxBudgetUsd = Math.min(ac.maxBudgetUsd, 10.00);
+    } else {
+      ac.maxBudgetUsd = 2.00; // server-enforced default
+    }
+    // Clamp maxTurns
+    if (ac.maxTurns !== undefined) {
+      ac.maxTurns = Math.min(Math.max(ac.maxTurns, 1), 50);
+    }
+  }
+}
 
 export class TaskService {
   constructor(private store: Store, private defaultMode: string) {}
@@ -11,10 +47,12 @@ export class TaskService {
   getTaskByName(name: string): Task | null { return this.store.getTaskByName(name); }
 
   createTask(input: CreateTaskInput): Task {
+    sanitizeInput(input);
     return this.store.createTask(crypto.randomUUID(), input, this.defaultMode);
   }
 
   updateTask(id: string, input: UpdateTaskInput): Task {
+    sanitizeInput(input);
     return this.store.updateTask(id, input);
   }
 

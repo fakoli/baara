@@ -32,6 +32,8 @@ const templateService = new TemplateService(store, taskService);
 const scheduler = new Scheduler(store, dispatcher);
 
 // Server
+const apiKey = process.env["BAARA_API_KEY"];
+
 const app = createApp({
   store,
   taskService,
@@ -39,6 +41,7 @@ const app = createApp({
   templateService,
   scheduler,
   staticDir: config.staticDir,
+  apiKey,
 });
 
 // Start everything
