@@ -7,6 +7,7 @@ export interface Config {
   staticDir: string;
   defaultExecutionMode: "queued" | "direct";
   anthropicApiKey: string;
+  authMode: "subscription" | "api_key";
 }
 
 export function loadConfig(): Config {
@@ -23,5 +24,7 @@ export function loadConfig(): Config {
     defaultExecutionMode:
       (process.env["DEFAULT_EXECUTION_MODE"] as "queued" | "direct") ?? "direct",
     anthropicApiKey,
+    authMode:
+      (process.env["BAARA_AUTH_MODE"] as "subscription" | "api_key") ?? "subscription",
   };
 }

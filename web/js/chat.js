@@ -1,37 +1,47 @@
-// Baara — Chat Panel
+// Baara — Agentic Chat Panel (SSE Streaming)
 
 import { api } from './api.js';
 import { escapeHtml } from './utils.js';
+import { renderToolCall } from './components/tool-call.js';
 
 let messagesContainer = null;
 let inputElement = null;
-let onCommand = null;
+let onToolCall = null;
+let isStreaming = false;
 
-const COMMANDS = {
-  help: 'Available commands: status, triage, tasks, jobs, queues, help, clear, or type a task name to view it.',
-  clear: '__clear__',
-};
-
-export function init({ messagesEl, inputEl, onCommandCallback }) {
+/**
+ * Initialize the chat panel.
+ * @param {Object} config
+ * @param {HTMLElement} config.messagesEl — DOM element for the message list
+ * @param {HTMLElement} config.inputEl — textarea element for user input
+ * @param {Function} [config.onToolCallCallback] — called when Claude invokes a tool
+ */
+export function init({ messagesEl, inputEl, onToolCallCallback }) {
   messagesContainer = messagesEl;
   inputElement = inputEl;
-  onCommand = onCommandCallback;
+  onToolCall = onToolCallCallback || null;
 
-  // Show welcome
   showWelcome();
 
-  // Handle input
   inputElement.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      if (isStreaming) return;
       const text = inputElement.value.trim();
       if (!text) return;
       inputElement.value = '';
-      handleInput(text);
+      // Reset textarea height after clearing
+      inputElement.style.height = 'auto';
+      handleSend(text);
     }
   });
 
-  // Focus on load
+  // Auto-resize textarea as user types
+  inputElement.addEventListener('input', () => {
+    inputElement.style.height = 'auto';
+    inputElement.style.height = Math.min(inputElement.scrollHeight, 120) + 'px';
+  });
+
   inputElement.focus();
 }
 
@@ -39,107 +49,105 @@ function showWelcome() {
   messagesContainer.innerHTML = `
     <div class="chat-welcome">
       <h3>Welcome to Baara</h3>
-      <p>Type a command to get started.</p>
-      <code>status</code> system overview<br>
-      <code>tasks</code> list all tasks<br>
-      <code>jobs</code> recent job history<br>
-      <code>queues</code> queue monitor<br>
-      <code>triage</code> jobs needing attention<br>
-      <code>clear</code> clear chat<br>
-      <code>help</code> show this help<br><br>
-      Or type a <strong>task name</strong> to view its detail.
+      <p>I can help you schedule and manage tasks.</p>
+      <p style="color: var(--text-dim); font-size: 12px; margin-top: 8px;">
+        Try: "Create a task that checks my email every morning at 6am"<br>
+        or ask me anything about your tasks.
+      </p>
     </div>
   `;
 }
 
-async function handleInput(text) {
+async function handleSend(text) {
   addMessage(text, 'user');
 
-  const lower = text.toLowerCase().trim();
+  isStreaming = true;
+  inputElement.disabled = true;
 
-  // Built-in commands
-  if (lower === 'clear') {
-    messagesContainer.innerHTML = '';
-    showWelcome();
-    return;
-  }
+  // Create assistant message placeholder for streaming
+  const assistantMsg = document.createElement('div');
+  assistantMsg.className = 'chat-msg assistant';
+  assistantMsg.innerHTML = '<div class="msg-content streaming"></div>';
+  messagesContainer.appendChild(assistantMsg);
+  const contentEl = assistantMsg.querySelector('.msg-content');
 
-  if (lower === 'help') {
-    addMessage(COMMANDS.help, 'system');
-    return;
-  }
+  let fullText = '';
 
-  if (lower === 'status' || lower === 'overview') {
-    addMessage('Showing system overview.', 'system');
-    if (onCommand) onCommand({ type: 'navigate', view: 'overview' });
-    return;
-  }
-
-  if (lower === 'triage') {
-    addMessage('Showing triage jobs.', 'system');
-    if (onCommand) onCommand({ type: 'navigate', view: 'triage' });
-    return;
-  }
-
-  if (lower === 'tasks') {
-    addMessage('Showing all tasks.', 'system');
-    if (onCommand) onCommand({ type: 'navigate', view: 'tasks' });
-    return;
-  }
-
-  if (lower === 'jobs') {
-    addMessage('Showing recent jobs.', 'system');
-    if (onCommand) onCommand({ type: 'navigate', view: 'jobs' });
-    return;
-  }
-
-  if (lower === 'queues') {
-    addMessage('Showing queue monitor.', 'system');
-    if (onCommand) onCommand({ type: 'navigate', view: 'queues' });
-    return;
-  }
-
-  // Try to find a task by name
   try {
-    const tasks = await api.listTasks();
-    const match = tasks.find(t =>
-      t.name.toLowerCase() === lower ||
-      t.name.toLowerCase().includes(lower) ||
-      t.id === text
-    );
+    await api.chatStream(text, (event) => {
+      switch (event.type) {
+        case 'text':
+          fullText += event.content;
+          contentEl.textContent = fullText;
+          scrollToBottom();
+          break;
 
-    if (match) {
-      addMessage(
-        `Found task: <a class="task-link" data-task-id="${match.id}"><span class="mono">${escapeHtml(match.name)}</span></a>`,
-        'system'
-      );
-      if (onCommand) onCommand({ type: 'select-task', task: match });
+        case 'tool_use': {
+          // Insert tool call card after the assistant message
+          const toolEl = renderToolCall(event.name, event.input);
+          messagesContainer.appendChild(toolEl);
+          if (onToolCall) onToolCall(event);
+          scrollToBottom();
+          break;
+        }
 
-      // Make the link clickable
-      const links = messagesContainer.querySelectorAll('.task-link');
-      const lastLink = links[links.length - 1];
-      if (lastLink) {
-        lastLink.addEventListener('click', () => {
-          if (onCommand) onCommand({ type: 'select-task', task: match });
-        });
+        case 'tool_result': {
+          // Update the last tool call card with the result
+          const lastTool = messagesContainer.querySelector('.tool-call-card:last-of-type');
+          if (lastTool) {
+            const resultEl = lastTool.querySelector('.tool-result');
+            if (resultEl) {
+              let display = 'Done';
+              if (event.output) {
+                try {
+                  display = JSON.stringify(JSON.parse(event.output), null, 2).slice(0, 200);
+                } catch {
+                  display = String(event.output).slice(0, 200);
+                }
+              }
+              resultEl.textContent = display;
+            }
+          }
+          break;
+        }
+
+        case 'result':
+          // Final result — update content if it differs from streamed text
+          if (event.text && event.text !== fullText) {
+            fullText = event.text;
+            contentEl.textContent = fullText;
+          }
+          scrollToBottom();
+          break;
+
+        case 'error':
+          addMessage(`Error: ${escapeHtml(event.message || 'Unknown error')}`, 'error');
+          scrollToBottom();
+          break;
+
+        case 'done':
+          break;
       }
-      return;
-    }
-
-    // No match
-    addMessage(
-      `No task found matching "${escapeHtml(text)}". Type <strong>help</strong> for available commands.`,
-      'system'
-    );
+    });
   } catch (err) {
     addMessage(`Error: ${escapeHtml(err.message)}`, 'error');
+  } finally {
+    isStreaming = false;
+    inputElement.disabled = false;
+    inputElement.focus();
+    contentEl.classList.remove('streaming');
+
+    // Remove empty assistant bubble if no text was streamed
+    if (!fullText && !assistantMsg.nextElementSibling) {
+      assistantMsg.remove();
+    }
   }
 }
 
 function addMessage(content, type = 'system') {
   const msg = document.createElement('div');
   msg.className = `chat-msg ${type}`;
-  msg.innerHTML = `<div class="msg-content">${content}</div>`;
+  msg.innerHTML = `<div class="msg-content">${type === 'user' ? escapeHtml(content) : content}</div>`;
   messagesContainer.appendChild(msg);
   scrollToBottom();
 }
@@ -150,6 +158,10 @@ function scrollToBottom() {
   });
 }
 
+/**
+ * Inject a system message into the chat.
+ * Preserved for external callers (triage badge, etc.).
+ */
 export function addSystemMessage(content) {
   addMessage(content, 'system');
 }

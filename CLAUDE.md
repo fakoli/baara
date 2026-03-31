@@ -21,8 +21,25 @@ make baara ARGS="tasks list"       # Alternative CLI via Makefile
 - `src/engine/` — Dispatcher, QueueManager, Executor, Scheduler, HealthMonitor
 - `src/services/` — TaskService, JobService, TemplateService (business logic)
 - `src/server/` — Hono API routes with auth + rate limiting + CSP
+- `src/chat/` — Claude-powered agentic chat (tools, system prompt, SSE endpoint)
 - `src/cli/` — Commander-based CLI (`baara` command)
 - `web/` — Vanilla JS frontend (no build step)
+
+## Chat Architecture
+- `src/chat/tools.ts` — 14 Baara tools via Agent SDK tool() + createSdkMcpServer()
+- `src/chat/system-prompt.ts` — System prompt for chat Claude
+- `src/server/routes/chat.ts` — POST /api/chat SSE endpoint
+- Chat uses `streamSSE()` from `hono/streaming`
+- Tools call services in-process (no subprocess, no HTTP self-calls)
+
+## Auth Modes
+- `BAARA_AUTH_MODE=subscription` (default) — uses Claude subscription via CLI
+- `BAARA_AUTH_MODE=api_key` — uses ANTHROPIC_API_KEY, billed per token
+
+## Adding a New Tool
+1. Add tool definition in `src/chat/tools.ts` using `tool()` from Agent SDK
+2. Add it to the tools array in `createBaaraTools()`
+3. The tool is automatically available in the chat and named `mcp__baara__<tool_name>`
 
 ## Security
 - API auth via `BAARA_API_KEY` env var (optional — if set, all /api/* routes require it)

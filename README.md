@@ -2,20 +2,26 @@
 
 > *"Baara"* means "work" in Bambara/Mandinka.
 
-A delayed task execution system built on the Claude Agent SDK. Schedule AI-powered tasks with priority queues, failure triage, and at-least-once delivery semantics. Runs as a single binary on a Mac mini.
+An agentic, chat-first task execution system built on the Claude Agent SDK. Talk to Claude in natural language to create, run, and manage tasks -- or use the CLI and cron scheduler. Priority queues, failure triage, and at-least-once delivery semantics. Runs as a single binary on a Mac mini.
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                      Baara                          │
-│                                                     │
-│  CLI ──┐                                            │
-│  Web ──┼──► Services ──► Dispatcher ──► Executor    │
-│  Cron ─┘        │         │    │         │          │
-│                 │      Queue   Direct    Agent SDK   │
-│                 │      Manager  Mode     Raw Code    │
-│                 │         │              Wasm        │
-│                 └──► SQLite ◄────────────┘           │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                        Baara                             │
+│                                                          │
+│  ┌─────────────────────┐  ┌─────────────────────────┐   │
+│  │  Chat (Claude AI)    │  │  Context Panel          │   │
+│  │  Natural language    │  │  (collapsible)          │   │
+│  │  task management     │  │                         │   │
+│  │                      │  │  Tasks / Jobs / Queues  │   │
+│  │  "Create a task..."  │  │  Auto-updates on tool   │   │
+│  │  ⚡ create_task      │  │  calls                  │   │
+│  │  ✓ Created!          │  │                         │   │
+│  └─────────────────────┘  └─────────────────────────┘   │
+│                                                          │
+│  14 Baara Tools (MCP) ──► Services ──► SQLite            │
+│  CLI (baara) ────────────►                               │
+│  Cron Scheduler ─────────►                               │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ## Quick Start
@@ -26,7 +32,8 @@ bun install
 
 # Configure
 cp .env.example .env
-# Add your ANTHROPIC_API_KEY
+# Default: subscription mode (uses Claude CLI, no API key needed)
+# Optional: set BAARA_AUTH_MODE=api_key and add ANTHROPIC_API_KEY
 
 # Start server (http://0.0.0.0:3000)
 bun start
@@ -38,13 +45,50 @@ bun run src/cli/index.ts status
 
 ## Features
 
-- **Chat-first UI** — Claude-inspired interface. Describe what you want in natural language.
+- **Chat-first UI** — Claude-powered agentic chat. Describe what you want in natural language and Claude calls Baara tools to make it happen.
+- **14 custom tools** — Exposed via in-process MCP server (create_task, run_task, list_jobs, etc.). Claude picks the right tool for every request.
+- **SSE streaming** — Real-time streamed responses from Claude, including tool use and results.
+- **Dual auth modes** — Use your Claude subscription (free within limits) or an API key (per-token billing).
+- **Collapsible context panel** — Chat is the primary interface; tasks, jobs, and queues live in a collapsible side panel that auto-updates on tool calls.
+- **[+ Create Task] button** — Manual task creation as a fallback alongside chat.
 - **Priority queues** — P0 (critical) through P3 (background) with FIFO tie-breaking.
 - **Dual execution modes** — Queued (full pipeline) or Direct (immediate, ideal for Mac mini).
 - **Agent SDK integration** — Built-in tools (WebSearch, WebFetch, Bash), MCP servers, subagents.
 - **Failure triage** — Failed jobs flagged for human attention after max retries exhausted.
 - **Health monitoring** — Detects slow/unresponsive jobs based on per-task timeout thresholds.
-- **Three interfaces** — Web UI, CLI (`baara`), and scheduled cron. All share the same service layer.
+- **Three interfaces** — Web UI (chat + context panel), CLI (`baara`), and scheduled cron. All share the same service layer.
+
+## Authentication
+
+Baara supports two authentication modes:
+
+### Subscription Mode (default)
+Uses your Claude Pro/Max/Team subscription via the Claude Code CLI.
+No API key needed -- free within your subscription limits.
+
+### API Key Mode
+Uses `ANTHROPIC_API_KEY` for per-token billing.
+Set `BAARA_AUTH_MODE=api_key` in `.env`.
+
+## Chat API
+
+`POST /api/chat` -- SSE streaming endpoint
+
+**Request:**
+```json
+{ "message": "Create a task that..." }
+```
+
+**Response:** `text/event-stream` with events:
+| Event type | Description |
+|------------|-------------|
+| `text` | Claude's response text (streaming) |
+| `tool_use` | Claude calling a Baara tool |
+| `tool_result` | Tool execution result |
+| `result` | Final response with usage stats |
+| `done` | Stream complete |
+
+Claude has access to 14 Baara tools via an in-process MCP server, including `create_task`, `run_task`, `list_tasks`, `list_jobs`, `get_queue_status`, and more. Tools call service functions directly -- no subprocess or HTTP self-calls.
 
 ## CLI Reference
 
@@ -68,6 +112,7 @@ baara templates list                # Browse templates
 
 | Method | Path | Description |
 |--------|------|-------------|
+| POST | `/api/chat` | Chat with Claude (SSE stream) |
 | GET | `/api/tasks` | List tasks |
 | POST | `/api/tasks` | Create task |
 | POST | `/api/tasks/:id/run` | Execute immediately |
@@ -87,6 +132,8 @@ baara templates list                # Browse templates
 | Database | bun:sqlite (embedded) |
 | Scheduler | Croner |
 | AI execution | Claude Agent SDK |
+| AI chat | Claude API (streaming via SSE) |
+| Tool integration | In-process MCP server (Agent SDK) |
 | Frontend | Vanilla JS (no build step) |
 
 ## License

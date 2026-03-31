@@ -103,4 +103,40 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
+
+  // Chat (SSE streaming)
+  async chatStream(message, onEvent) {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({ error: response.statusText }));
+      throw new Error(body.error || `Chat failed: ${response.status}`);
+    }
+
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
+
+      for (const event of events) {
+        if (!event.trim()) continue;
+        let data = '';
+        for (const line of event.split('\n')) {
+          if (line.startsWith('data: ')) data += line.slice(6);
+        }
+        if (data) {
+          try { onEvent(JSON.parse(data)); } catch {}
+        }
+      }
+    }
+  },
 };
