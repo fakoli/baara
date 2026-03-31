@@ -6,7 +6,7 @@ import { escapeHtml, timeAgo, statusDotClass, statusLabel, formatTokens, formatD
 let refreshInterval = null;
 
 export async function render(container) {
-  container.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
 
   try {
     const [tasks, status, triageJobs] = await Promise.all([
@@ -75,7 +75,7 @@ export async function render(container) {
 
       <div class="section-title">Recent Activity</div>
       ${recentJobs.length === 0
-        ? '<div class="empty-state">No recent jobs</div>'
+        ? '<div class="empty-state" style="padding: 24px 16px;"><p>No recent activity. Run a task to see results here.</p></div>'
         : recentJobs.map(job => `
           <div class="activity-row">
             <span class="status-dot ${statusDotClass(job.status)}"></span>

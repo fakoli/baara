@@ -6,9 +6,12 @@ import { renderToolCall } from './components/tool-call.js';
 
 let messagesContainer = null;
 let inputElement = null;
+let sendButton = null;
+let inputHint = null;
 let onToolCall = null;
 let isStreaming = false;
 let sessionId = null;
+let lastSentMessage = null;
 
 // Session persistence keys
 const SESSION_ID_KEY = 'baara_session_id';
@@ -24,6 +27,8 @@ const CHAT_HISTORY_KEY = 'baara_chat_history';
 export function init({ messagesEl, inputEl, onToolCallCallback }) {
   messagesContainer = messagesEl;
   inputElement = inputEl;
+  sendButton = document.getElementById('send-btn');
+  inputHint = document.getElementById('input-hint');
   onToolCall = onToolCallCallback || null;
 
   // Restore session from sessionStorage
@@ -32,13 +37,7 @@ export function init({ messagesEl, inputEl, onToolCallCallback }) {
   inputElement.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (isStreaming) return;
-      const text = inputElement.value.trim();
-      if (!text) return;
-      inputElement.value = '';
-      // Reset textarea height after clearing
-      inputElement.style.height = 'auto';
-      handleSend(text);
+      triggerSend();
     }
   });
 
@@ -46,41 +45,108 @@ export function init({ messagesEl, inputEl, onToolCallCallback }) {
   inputElement.addEventListener('input', () => {
     inputElement.style.height = 'auto';
     inputElement.style.height = Math.min(inputElement.scrollHeight, 120) + 'px';
+    updateSendButton();
   });
 
+  // Show/hide input hint on focus
+  inputElement.addEventListener('focus', () => {
+    if (inputHint) inputHint.classList.add('visible');
+  });
+  inputElement.addEventListener('blur', () => {
+    if (inputHint) inputHint.classList.remove('visible');
+  });
+
+  // Send button click
+  if (sendButton) {
+    sendButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      triggerSend();
+    });
+  }
+
   inputElement.focus();
+}
+
+function triggerSend() {
+  if (isStreaming) return;
+  const text = inputElement.value.trim();
+  if (!text) return;
+  inputElement.value = '';
+  inputElement.style.height = 'auto';
+  updateSendButton();
+  handleSend(text);
+}
+
+function updateSendButton() {
+  if (!sendButton) return;
+  const hasText = inputElement.value.trim().length > 0;
+  if (hasText && !isStreaming) {
+    sendButton.classList.add('visible');
+  } else {
+    sendButton.classList.remove('visible');
+  }
 }
 
 function showWelcome() {
   messagesContainer.innerHTML = `
     <div class="chat-welcome">
-      <h3>Welcome to Baara</h3>
-      <p>I can help you schedule and manage tasks.</p>
-      <p style="color: var(--text-dim); font-size: 12px; margin-top: 8px;">
-        Try: "Create a task that checks my email every morning at 6am"<br>
-        or ask me anything about your tasks.
-      </p>
+      <div class="welcome-icon">B</div>
+      <h3>Hey, welcome to Baara</h3>
+      <p class="subtitle">I'm your task manager. Tell me what to automate and I'll handle the rest.</p>
+      <div class="suggestions">
+        <div class="suggestion" data-msg="Create a task that checks my email every morning at 6am">Schedule an email check every morning at 6am</div>
+        <div class="suggestion" data-msg="Show me all my active tasks">Show me all my active tasks</div>
+        <div class="suggestion" data-msg="What's the status of my system?">What's the system status?</div>
+      </div>
     </div>
   `;
+
+  // Wire up suggestion clicks
+  messagesContainer.querySelectorAll('.suggestion').forEach(el => {
+    el.addEventListener('click', () => {
+      const msg = el.dataset.msg;
+      if (msg && !isStreaming) {
+        handleSend(msg);
+      }
+    });
+  });
 }
 
 async function handleSend(text) {
+  // Store for retry
+  lastSentMessage = text;
+
   addMessage(text, 'user');
 
   isStreaming = true;
   inputElement.disabled = true;
+  updateSendButton();
+
+  // Show typing indicator while waiting for first token
+  const typingEl = document.createElement('div');
+  typingEl.className = 'typing-indicator';
+  typingEl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  messagesContainer.appendChild(typingEl);
+  scrollToBottom();
 
   // Create assistant message placeholder for streaming
   const assistantMsg = document.createElement('div');
   assistantMsg.className = 'chat-msg assistant';
   assistantMsg.innerHTML = '<div class="msg-content streaming"></div>';
-  messagesContainer.appendChild(assistantMsg);
-  const contentEl = assistantMsg.querySelector('.msg-content');
 
+  const contentEl = assistantMsg.querySelector('.msg-content');
   let fullText = '';
+  let firstToken = true;
 
   try {
     await api.chatStream(text, (event) => {
+      // Remove typing indicator on first content event
+      if (firstToken && (event.type === 'text' || event.type === 'text_delta' || event.type === 'tool_use')) {
+        firstToken = false;
+        typingEl.remove();
+        messagesContainer.appendChild(assistantMsg);
+      }
+
       switch (event.type) {
         case 'system':
           // Capture session ID from the init message
@@ -144,7 +210,7 @@ async function handleSend(text) {
           break;
 
         case 'error':
-          addMessage(`Error: ${escapeHtml(event.message || 'Unknown error')}`, 'error');
+          addErrorMessage(event.message || 'Unknown error', text);
           scrollToBottom();
           break;
 
@@ -153,15 +219,22 @@ async function handleSend(text) {
       }
     }, { sessionId });
   } catch (err) {
-    addMessage(`Error: ${escapeHtml(err.message)}`, 'error');
+    typingEl.remove();
+    addErrorMessage(err.message, text);
   } finally {
     isStreaming = false;
     inputElement.disabled = false;
     inputElement.focus();
     contentEl.classList.remove('streaming');
+    updateSendButton();
+
+    // Remove typing indicator if it's still there
+    if (typingEl.parentNode) typingEl.remove();
 
     // Remove empty assistant bubble if no text was streamed
-    if (!fullText && !assistantMsg.nextElementSibling) {
+    if (!fullText && !assistantMsg.parentNode) {
+      // assistantMsg was never added, nothing to remove
+    } else if (!fullText && assistantMsg.parentNode) {
       assistantMsg.remove();
     }
 
@@ -175,6 +248,29 @@ function addMessage(content, type = 'system') {
   msg.className = `chat-msg ${type}`;
   msg.innerHTML = `<div class="msg-content">${escapeHtml(content)}</div>`;
   messagesContainer.appendChild(msg);
+  scrollToBottom();
+}
+
+function addErrorMessage(errorText, originalMessage) {
+  const msg = document.createElement('div');
+  msg.className = 'chat-msg error';
+  const safeError = escapeHtml(errorText);
+  msg.innerHTML = `
+    <div class="msg-content">
+      <span>Error: ${safeError}</span>
+      ${originalMessage ? '<button class="retry-btn-chat">Retry</button>' : ''}
+    </div>
+  `;
+  messagesContainer.appendChild(msg);
+
+  if (originalMessage) {
+    const retryBtn = msg.querySelector('.retry-btn-chat');
+    retryBtn.addEventListener('click', () => {
+      msg.remove();
+      handleSend(originalMessage);
+    });
+  }
+
   scrollToBottom();
 }
 

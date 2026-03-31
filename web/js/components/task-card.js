@@ -8,7 +8,7 @@ import {
 import * as outputViewer from './output-viewer.js';
 
 export async function render(container, { task, onTaskDeleted, onNavigate }) {
-  container.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
 
   let jobs = [];
   try {
@@ -82,7 +82,7 @@ export async function render(container, { task, onTaskDeleted, onNavigate }) {
 
     <div class="section-title">Recent Jobs</div>
     ${jobs.length === 0
-      ? '<div class="empty-state">No jobs yet</div>'
+      ? '<div class="empty-state" style="padding: 24px 16px;"><p>No jobs yet. Click <strong>Run Now</strong> to execute this task.</p></div>'
       : `<div>
           ${jobs.map(job => `
             <div class="activity-row job-row" data-job-id="${job.id}" style="cursor: pointer;">

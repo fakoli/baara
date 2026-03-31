@@ -7,7 +7,7 @@ import {
 } from '../utils.js';
 
 export async function render(container, { onTaskSelect }) {
-  container.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
 
   try {
     const tasks = await api.listTasks();
@@ -29,7 +29,19 @@ export async function render(container, { onTaskSelect }) {
       .slice(0, 50);
 
     if (allJobs.length === 0) {
-      container.innerHTML = '<div class="empty-state">No jobs found</div>';
+      container.innerHTML = `
+        <div class="section-title">Recent Jobs</div>
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <h4>No jobs yet</h4>
+          <p>Jobs appear here when tasks run. Try running a task to see results.</p>
+        </div>
+      `;
       return;
     }
 
@@ -44,7 +56,7 @@ export async function render(container, { onTaskSelect }) {
       </div>
       ${allJobs.map(job => `
         <div class="list-row job-list-grid" data-task-id="${job.taskId}">
-          <span class="status-dot ${statusDotClass(job.status)}"></span>
+          <span class="status-dot ${statusDotClass(job.status)}" title="${statusLabel(job.status)}"></span>
           <span class="list-cell">${statusLabel(job.status)}</span>
           <span class="list-cell">${escapeHtml(job.taskName)}</span>
           <span class="list-cell mono">${formatDuration(job.durationMs)}</span>

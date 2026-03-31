@@ -4,7 +4,7 @@ import { api } from '../api.js';
 import { escapeHtml } from '../utils.js';
 
 export async function render(container) {
-  container.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
 
   try {
     const queues = await api.getQueues();
@@ -12,7 +12,20 @@ export async function render(container) {
     if (!queues || queues.length === 0) {
       container.innerHTML = `
         <div class="section-title">Queues</div>
-        <div class="empty-state">No queues configured</div>
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </div>
+          <h4>No queues</h4>
+          <p>Queues are created when tasks use queued execution mode.</p>
+        </div>
       `;
       return;
     }

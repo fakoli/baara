@@ -47,7 +47,18 @@ async function renderOverview(container, state) {
 
 async function renderTaskDetail(container, state) {
   if (!state.selectedTask) {
-    container.innerHTML = '<div class="empty-state">No task selected</div>';
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+        </div>
+        <h4>No task selected</h4>
+        <p>Select a task from the Tasks tab to view details.</p>
+      </div>
+    `;
     return;
   }
 
@@ -73,7 +84,7 @@ async function renderTaskDetail(container, state) {
 }
 
 async function renderTaskList(container, state) {
-  container.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
 
   try {
     const tasks = await api.listTasks();
@@ -81,7 +92,19 @@ async function renderTaskList(container, state) {
     if (tasks.length === 0) {
       container.innerHTML = `
         <div class="section-title">All Tasks</div>
-        <div class="empty-state">No tasks created yet</div>
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <h4>No tasks yet</h4>
+          <p>Create your first task to start automating work.</p>
+          <div class="hint">Use the <code>+ Create Task</code> button or ask in the chat.</div>
+        </div>
       `;
       return;
     }
@@ -97,7 +120,7 @@ async function renderTaskList(container, state) {
       </div>
       ${tasks.map(t => `
         <div class="list-row task-list-grid" data-task-id="${t.id}">
-          <span class="status-dot ${t.enabled ? 'green' : 'gray'}"></span>
+          <span class="status-dot ${t.enabled ? 'green' : 'gray'}" title="${t.enabled ? 'Enabled' : 'Disabled'}"></span>
           <span class="list-cell">${escapeHtml(t.name)}</span>
           <span class="list-cell mono">${escapeHtml(t.cronExpression || '--')}</span>
           <span class="list-cell secondary">${escapeHtml(t.executionMode)}</span>
@@ -143,7 +166,7 @@ async function renderQueues(container, state) {
 }
 
 async function renderTriage(container, state) {
-  container.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading...</div>';
 
   try {
     const triageJobs = await api.getTriageJobs();
@@ -157,8 +180,14 @@ async function renderTriage(container, state) {
       container.innerHTML = `
         <div class="section-title">Triage Jobs</div>
         <div class="empty-state">
-          <span class="status-dot green" style="width: 12px; height: 12px; margin-bottom: 12px;"></span>
-          <p>All clear -- no jobs need attention</p>
+          <div class="empty-state-icon" style="border-color: rgba(34, 197, 94, 0.2); background: rgba(34, 197, 94, 0.04);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <h4>All clear</h4>
+          <p>No jobs need attention right now. Everything is running smoothly.</p>
         </div>
       `;
       return;

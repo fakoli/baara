@@ -114,12 +114,15 @@ function togglePanel() {
 }
 
 function applyPanelState() {
+  const toggleIcon = panelToggleBtn.querySelector('svg');
   if (state.panelCollapsed) {
     contextPanelEl.classList.add('collapsed');
     resizeHandle.style.display = 'none';
+    if (toggleIcon) toggleIcon.style.transform = 'rotate(180deg)';
   } else {
     contextPanelEl.classList.remove('collapsed');
     resizeHandle.style.display = '';
+    if (toggleIcon) toggleIcon.style.transform = 'rotate(0deg)';
   }
 }
 
