@@ -13,7 +13,7 @@ import { showSettingsPanel } from './components/settings-panel.js';
 const state = {
   selectedTask: null,
   activeTab: 'overview',
-  contextView: 'overview', // overview | task-detail | tasks | jobs | queues | triage
+  contextView: 'overview', // overview | task-detail | tasks | jobs | queues | logs | triage
   panelCollapsed: localStorage.getItem('panelCollapsed') === 'true',
   activeProjectId: localStorage.getItem('baara_active_project_id') || null,
 
@@ -63,6 +63,9 @@ function handleTabChange(tabId) {
     state.selectedTask = null;
   } else if (tabId === 'queues') {
     state.contextView = 'queues';
+    state.selectedTask = null;
+  } else if (tabId === 'logs') {
+    state.contextView = 'logs';
     state.selectedTask = null;
   }
 
@@ -178,10 +181,16 @@ function initResize() {
 // --- Create Task Button ---
 
 function handleCreateTask() {
-  showCreateTaskModal((task) => {
-    // On created, navigate to tasks view and refresh
-    state.contextView = 'tasks';
-    state.activeTab = 'tasks';
+  showCreateTaskModal((task, opts) => {
+    if (opts && opts.ranNow) {
+      // Show jobs view to see the running job
+      state.contextView = 'jobs';
+      state.activeTab = 'jobs';
+    } else {
+      // On created, navigate to tasks view and refresh
+      state.contextView = 'tasks';
+      state.activeTab = 'tasks';
+    }
     renderAll();
   });
 }

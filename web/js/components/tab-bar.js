@@ -5,6 +5,7 @@ const TABS = [
   { id: 'tasks', label: 'Tasks' },
   { id: 'jobs', label: 'Jobs' },
   { id: 'queues', label: 'Queues' },
+  { id: 'logs', label: 'Logs' },
 ];
 
 export function render(container, { activeTab, onTabChange }) {

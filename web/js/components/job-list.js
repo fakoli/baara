@@ -50,19 +50,30 @@ export async function render(container, { onTaskSelect }) {
       <div class="list-header job-list-grid">
         <span></span>
         <span>Status</span>
+        <span>Preview</span>
         <span>Task</span>
         <span>Duration</span>
         <span>Time</span>
       </div>
-      ${allJobs.map(job => `
+      ${allJobs.map(job => {
+        const preview = job.status === 'completed'
+          ? (job.output ? escapeHtml(job.output.slice(0, 60)) : '')
+          : job.status === 'failed' || job.status === 'triage'
+            ? (job.error ? escapeHtml(job.error.slice(0, 60)) : '')
+            : job.status === 'timed_out'
+              ? 'Exceeded timeout'
+              : '';
+        const previewClass = (job.status === 'failed' || job.status === 'triage') ? 'preview-error' : 'preview-output';
+        return `
         <div class="list-row job-list-grid" data-task-id="${job.taskId}">
           <span class="status-dot ${statusDotClass(job.status)}" title="${statusLabel(job.status)}"></span>
           <span class="list-cell">${statusLabel(job.status)}</span>
+          <span class="list-cell preview-text ${previewClass}" title="${escapeHtml(preview)}">${preview || '--'}</span>
           <span class="list-cell">${escapeHtml(job.taskName)}</span>
           <span class="list-cell mono">${formatDuration(job.durationMs)}</span>
           <span class="list-cell mono secondary">${timeAgo(job.createdAt)}</span>
         </div>
-      `).join('')}
+      `}).join('')}
     `;
 
     // Click job row to select its task

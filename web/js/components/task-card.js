@@ -167,9 +167,10 @@ export async function render(container, { task, onTaskDeleted, onNavigate }) {
 
       try {
         const fullJob = await api.getJob(jobId);
-        if (fullJob.output) {
+        if (fullJob.output || fullJob.error) {
           outputViewer.render(viewerEl, {
             output: fullJob.output,
+            error: fullJob.error,
             title: `Job ${statusLabel(fullJob.status)}`,
           });
         } else {

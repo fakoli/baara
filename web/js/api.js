@@ -74,6 +74,20 @@ export const api = {
     return request('/api/jobs/triage');
   },
 
+  // Logs
+  getLogs(opts = {}) {
+    const params = new URLSearchParams();
+    if (opts.limit) params.set('limit', opts.limit);
+    if (opts.level) params.set('level', opts.level);
+    if (opts.jobId) params.set('jobId', opts.jobId);
+    const qs = params.toString();
+    return request(`/api/logs${qs ? '?' + qs : ''}`);
+  },
+
+  getJobLogs(jobId) {
+    return request(`/api/jobs/${jobId}/logs`);
+  },
+
   // System
   getHealth() {
     return request('/api/health');

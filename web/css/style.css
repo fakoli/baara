@@ -575,7 +575,7 @@ body {
 
 /* Job list grid */
 .job-list-grid {
-  grid-template-columns: 8px 80px 1fr 80px 100px;
+  grid-template-columns: 8px 80px minmax(60px, 200px) 1fr 80px 100px;
   gap: 12px;
 }
 
@@ -2223,3 +2223,59 @@ select.form-input:not(.modal select.form-input) {
 .project-new-btn:hover {
   background: var(--card-hover);
 }
+
+/* === Log Viewer === */
+.log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.log-filters {
+  display: flex;
+  gap: 4px;
+}
+
+.log-filter.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.log-entries {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.8;
+  max-height: 600px;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+
+.log-entry {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(38, 38, 38, 0.3);
+}
+
+.log-entry:last-child { border-bottom: none; }
+
+.log-time { color: var(--text-dim); flex-shrink: 0; width: 80px; }
+.log-level { flex-shrink: 0; width: 50px; font-weight: 600; }
+.log-task { color: var(--text-secondary); flex-shrink: 0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.log-msg { color: var(--text); flex: 1; }
+
+/* Output sections */
+.output-section { margin-bottom: 8px; }
+.output-section:last-child { margin-bottom: 0; }
+.output-success .output-header { border-left: 3px solid var(--green); padding-left: 12px; }
+.output-error .output-header { border-left: 3px solid var(--red); padding-left: 12px; }
+
+/* Job list preview */
+.preview-text { font-size: 11px; font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+.preview-error { color: var(--red); }
+.preview-output { color: var(--text-dim); }

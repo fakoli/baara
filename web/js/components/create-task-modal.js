@@ -46,10 +46,16 @@ export function showCreateTaskModal(onCreated) {
             </select>
           </div>
         </div>
+
+        <label class="form-label">Queue</label>
+        <select class="form-input" id="modal-queue">
+          <option value="default">default</option>
+        </select>
       </div>
       <div class="modal-footer">
         <button class="btn cancel-btn">Cancel</button>
-        <button class="btn primary create-btn">Create Task</button>
+        <button class="btn create-btn">Create Task</button>
+        <button class="btn primary run-now-btn">Create & Run Now</button>
       </div>
     </div>
   `;
@@ -118,6 +124,7 @@ export function showCreateTaskModal(onCreated) {
         cronExpression: overlay.querySelector('#modal-cron').value.trim() || null,
         executionType: overlay.querySelector('#modal-type').value,
         priority: parseInt(overlay.querySelector('#modal-priority').value),
+        targetQueue: overlay.querySelector('#modal-queue').value,
       });
       close();
       if (onCreated) onCreated(task);
@@ -129,6 +136,61 @@ export function showCreateTaskModal(onCreated) {
       }, 2000);
     }
   });
+
+  // "Create & Run Now" handler
+  overlay.querySelector('.run-now-btn').addEventListener('click', async () => {
+    const name = overlay.querySelector('#modal-name').value.trim();
+    const prompt = overlay.querySelector('#modal-prompt').value.trim();
+    if (!name || !prompt) return;
+
+    const btn = overlay.querySelector('.run-now-btn');
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+
+    try {
+      const task = await api.createTask({
+        name,
+        prompt,
+        cronExpression: overlay.querySelector('#modal-cron').value.trim() || null,
+        executionType: overlay.querySelector('#modal-type').value,
+        priority: parseInt(overlay.querySelector('#modal-priority').value),
+        targetQueue: overlay.querySelector('#modal-queue').value,
+      });
+
+      btn.textContent = 'Running...';
+      await api.runTask(task.id);
+      close();
+      if (onCreated) onCreated(task, { ranNow: true });
+    } catch (err) {
+      btn.textContent = 'Error';
+      setTimeout(() => {
+        btn.textContent = 'Create & Run Now';
+        btn.disabled = false;
+      }, 2000);
+    }
+  });
+
+  // Populate queue dropdown
+  (async () => {
+    try {
+      const queues = await api.getQueues();
+      const select = overlay.querySelector('#modal-queue');
+      if (select && Array.isArray(queues)) {
+        const existing = new Set([...select.options].map(o => o.value));
+        for (const q of queues) {
+          const queueName = typeof q === 'string' ? q : (q.name || q.id || '');
+          if (queueName && !existing.has(queueName)) {
+            const opt = document.createElement('option');
+            opt.value = queueName;
+            opt.textContent = queueName;
+            select.appendChild(opt);
+          }
+        }
+      }
+    } catch {
+      // Queue fetch failed — keep the default option
+    }
+  })();
 
   // Focus the name field
   overlay.querySelector('#modal-name').focus();

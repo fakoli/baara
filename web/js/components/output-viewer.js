@@ -1,66 +1,50 @@
 // Baara — Output Viewer Component
-// Uses @chenglou/pretext for text layout measurement
+// Shows both output (green) and error (red) sections
 
-import { prepareWithSegments, layoutWithLines } from '/vendor/pretext/layout.js';
 import { escapeHtml } from '../utils.js';
 
-export function render(container, { output, title }) {
-  if (!output) {
+export function render(container, { output, error, title }) {
+  if (!output && !error) {
     container.innerHTML = '<div class="empty-state">No output</div>';
     return;
   }
 
-  const fontSpec = '13px "JetBrains Mono", monospace';
-  const lineHeight = 20;
+  let html = '<div class="output-viewer">';
 
-  container.innerHTML = `
-    <div class="output-viewer">
-      <div class="output-header">
-        <span class="section-title" style="margin:0;border:0">${title || 'Output'}</span>
-        <button class="btn sm copy-btn">Copy</button>
+  if (output) {
+    html += `
+      <div class="output-section output-success">
+        <div class="output-header">
+          <span class="section-title" style="margin:0;border:0;color:var(--green)">Output</span>
+          <button class="btn sm copy-btn" data-copy="output">Copy</button>
+        </div>
+        <div class="output-body"><pre class="output-text">${escapeHtml(output)}</pre></div>
       </div>
-      <div class="output-body"></div>
-      <div class="output-footer">
-        <span class="output-stats"></span>
-      </div>
-    </div>
-  `;
-
-  const body = container.querySelector('.output-body');
-  const stats = container.querySelector('.output-stats');
-  const copyBtn = container.querySelector('.copy-btn');
-
-  // Prepare text once (expensive)
-  let prepared;
-  try {
-    prepared = prepareWithSegments(output, fontSpec, { whiteSpace: 'pre-wrap' });
-  } catch (e) {
-    // Fallback if Pretext fails (e.g., canvas not available)
-    body.innerHTML = `<pre class="output-fallback">${escapeHtml(output)}</pre>`;
-    stats.textContent = `${output.length} chars`;
-    return;
+    `;
   }
 
-  function layoutContent() {
-    const width = body.clientWidth - 24; // padding
-    if (width <= 0) return;
-
-    const { lineCount, lines } = layoutWithLines(prepared, width, lineHeight);
-
-    body.innerHTML = `<pre class="output-text">${lines.map(l => escapeHtml(l.text)).join('\n')}</pre>`;
-    stats.textContent = `${lineCount} lines · ${output.length} chars`;
+  if (error) {
+    html += `
+      <div class="output-section output-error">
+        <div class="output-header">
+          <span class="section-title" style="margin:0;border:0;color:var(--red)">Error</span>
+          <button class="btn sm copy-btn" data-copy="error">Copy</button>
+        </div>
+        <div class="output-body"><pre class="output-text" style="color:var(--red)">${escapeHtml(error)}</pre></div>
+      </div>
+    `;
   }
 
-  layoutContent();
+  html += '</div>';
+  container.innerHTML = html;
 
-  // Re-layout on resize
-  const observer = new ResizeObserver(() => layoutContent());
-  observer.observe(body);
-
-  // Copy button
-  copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(output);
-    copyBtn.textContent = 'Copied!';
-    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+  // Wire copy buttons
+  container.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.dataset.copy === 'output' ? output : error;
+      navigator.clipboard.writeText(text || '');
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    });
   });
 }

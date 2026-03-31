@@ -4,11 +4,13 @@ import * as overviewCard from './overview-card.js';
 import * as taskCard from './task-card.js';
 import * as jobList from './job-list.js';
 import * as queueMonitor from './queue-monitor.js';
+import * as logViewer from './log-viewer.js';
 import { api } from '../api.js';
 import { escapeHtml, timeAgo } from '../utils.js';
 
 export async function render(container, state) {
   overviewCard.stopAutoRefresh();
+  logViewer.stopAutoRefresh();
 
   const view = state.contextView;
 
@@ -27,6 +29,10 @@ export async function render(container, state) {
 
     case 'queues':
       await renderQueues(container, state);
+      break;
+
+    case 'logs':
+      await renderLogs(container, state);
       break;
 
     case 'triage':
@@ -165,6 +171,11 @@ async function renderJobList(container, state) {
 
 async function renderQueues(container, state) {
   await queueMonitor.render(container);
+}
+
+async function renderLogs(container, state) {
+  await logViewer.render(container, { onNavigate: state.onNavigate });
+  logViewer.startAutoRefresh(container, { onNavigate: state.onNavigate });
 }
 
 async function renderTriage(container, state) {
