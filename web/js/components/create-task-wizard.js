@@ -23,14 +23,14 @@ export function showCreateTaskWizard(onCreated) {
         <button class="icon-btn modal-close" aria-label="Close dialog">\u2715</button>
       </div>
       <div class="modal-body">
+        <div class="wizard-progress" id="wiz-progress">
+          <span class="step active current" data-step-idx="1">1. Basics</span>
+          <span class="step" data-step-idx="2">2. Execution</span>
+          <span class="step" data-step-idx="3">3. Schedule &amp; Tools</span>
+        </div>
 
         <!-- Step 1: Basics -->
         <div class="wizard-step" data-step="1">
-          <div class="wizard-progress">
-            <span class="step active current">1. Basics</span>
-            <span class="step">2. Execution</span>
-            <span class="step">3. Schedule &amp; Tools</span>
-          </div>
 
           <label class="form-label">Name *</label>
           <input type="text" class="form-input" id="wiz-name" placeholder="my-task">
@@ -50,11 +50,6 @@ export function showCreateTaskWizard(onCreated) {
 
         <!-- Step 2: Execution -->
         <div class="wizard-step" data-step="2" style="display:none">
-          <div class="wizard-progress">
-            <span class="step active">1. Basics</span>
-            <span class="step active current">2. Execution</span>
-            <span class="step">3. Schedule &amp; Tools</span>
-          </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
             <div>
@@ -100,12 +95,6 @@ export function showCreateTaskWizard(onCreated) {
 
         <!-- Step 3: Schedule & Tools -->
         <div class="wizard-step" data-step="3" style="display:none">
-          <div class="wizard-progress">
-            <span class="step active">1. Basics</span>
-            <span class="step active">2. Execution</span>
-            <span class="step active current">3. Schedule &amp; Tools</span>
-          </div>
-
           <label class="form-label">Schedule</label>
           <select class="form-input" id="wiz-cron-preset">
             <option value="">No schedule (manual only)</option>
@@ -168,15 +157,15 @@ export function showCreateTaskWizard(onCreated) {
   document.body.appendChild(overlay);
 
   // --- Step Navigation ---
+  // Initialize step 1 (MUST be called after DOM is appended)
 
   function goToStep(step) {
     currentStep = step;
     overlay.querySelectorAll('.wizard-step').forEach(s => s.style.display = 'none');
-    overlay.querySelector(`[data-step="${step}"]`).style.display = '';
+    overlay.querySelector(`.wizard-step[data-step="${step}"]`).style.display = '';
 
-    // Update progress indicators on the visible step
-    const activeStep = overlay.querySelector(`[data-step="${step}"]`);
-    activeStep.querySelectorAll('.wizard-progress .step').forEach((s, i) => {
+    // Update the shared progress bar
+    overlay.querySelectorAll('#wiz-progress .step').forEach((s, i) => {
       s.classList.toggle('active', i + 1 <= step);
       s.classList.toggle('current', i + 1 === step);
     });
@@ -209,6 +198,9 @@ export function showCreateTaskWizard(onCreated) {
   overlay.querySelector('.wiz-back').addEventListener('click', () => {
     if (currentStep > 1) goToStep(currentStep - 1);
   });
+
+  // Initialize to step 1
+  goToStep(1);
 
   // --- Close Handlers ---
 
