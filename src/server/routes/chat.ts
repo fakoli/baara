@@ -4,9 +4,11 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
-import { CHAT_SYSTEM_PROMPT } from "../../chat/system-prompt.ts";
+import { buildSystemPrompt } from "../../chat/system-prompt.ts";
+import { gatherChatContext } from "../../chat/context.ts";
+import type { Store } from "../../db/store.ts";
 
-export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance) {
+export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: Store) {
   const app = new Hono();
 
   app.post("/", async (c) => {
@@ -28,9 +30,13 @@ export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance) {
       });
 
       try {
+        // Gather live context and build a context-aware system prompt
+        const chatContext = gatherChatContext(store);
+        const systemPrompt = buildSystemPrompt(chatContext);
+
         // Build options — resume session if sessionId is provided
         const options: Record<string, unknown> = {
-          systemPrompt: CHAT_SYSTEM_PROMPT,
+          systemPrompt,
           mcpServers: { baara: baaraServer },
           permissionMode: "bypassPermissions",
           allowDangerouslySkipPermissions: true,

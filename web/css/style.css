@@ -1033,11 +1033,26 @@ body {
   word-break: break-all;
 }
 
+.tool-call-summary {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
 .tool-result {
   font-family: var(--mono);
   font-size: 11px;
   color: var(--green);
   padding: 4px 0;
+}
+
+.tool-result-error {
+  color: var(--red, #e74c3c);
 }
 
 /* === Modal === */

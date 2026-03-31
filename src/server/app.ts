@@ -107,7 +107,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api/tasks", taskRoutes(deps.taskService, deps.jobService, deps.scheduler));
   app.route("/api/jobs", jobRoutes(deps.jobService));
   app.route("/api/templates", templateRoutes(deps.templateService));
-  app.route("/api/chat", chatRoutes(deps.baaraServer));
+  app.route("/api/chat", chatRoutes(deps.baaraServer, deps.store));
   app.route("/api", systemRoutes(deps.store));
 
   // Job list nested under tasks

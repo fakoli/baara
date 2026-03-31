@@ -183,18 +183,11 @@ async function handleSend(text) {
           if (lastTool) {
             const resultEl = lastTool.querySelector('.tool-result');
             if (resultEl) {
-              let display = 'Done';
-              if (event.output) {
-                try {
-                  display = (typeof event.output === 'string'
-                    ? event.output
-                    : JSON.stringify(event.output, null, 2)
-                  ).slice(0, 200);
-                } catch {
-                  display = String(event.output).slice(0, 200);
-                }
+              const formatted = formatToolResult(event.output, event.isError);
+              resultEl.textContent = formatted;
+              if (event.isError) {
+                resultEl.classList.add('tool-result-error');
               }
-              resultEl.textContent = display;
             }
           }
           break;
@@ -240,6 +233,65 @@ async function handleSend(text) {
 
     // Persist chat history to sessionStorage
     saveChatHistory();
+  }
+}
+
+/**
+ * Format a tool result for display — tries to extract a meaningful summary
+ * instead of showing raw JSON.
+ * @param {*} output — raw tool output
+ * @param {boolean} isError — whether the result is an error
+ * @returns {string} — formatted display string
+ */
+function formatToolResult(output, isError) {
+  if (!output) return isError ? 'Failed' : 'Done';
+
+  try {
+    // Parse the output if it's a string containing JSON
+    let data = output;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch { /* not JSON, use as-is */ }
+    }
+
+    // Handle MCP tool result content blocks
+    if (Array.isArray(data)) {
+      const textBlocks = data.filter(b => b.type === 'text');
+      if (textBlocks.length > 0) {
+        try {
+          data = JSON.parse(textBlocks[0].text);
+        } catch {
+          return textBlocks[0].text.slice(0, 200);
+        }
+      }
+    }
+
+    if (typeof data !== 'object' || data === null) {
+      return String(data).slice(0, 200);
+    }
+
+    // Simple message responses
+    if (data.message) return data.message;
+
+    // Deleted/toggled/submitted responses
+    if (data.deleted) return `Deleted: ${data.name || data.id}`;
+    if (data.submitted) return `Submitted job ${(data.jobId || '').slice(0, 8)}`;
+    if (data.retried) return `Retried -> job ${(data.newJobId || '').slice(0, 8)}`;
+    if ('enabled' in data && data.name) return `${data.name}: ${data.enabled ? 'enabled' : 'disabled'}`;
+
+    // Task or job detail — show name + status
+    if (data.name && data.id) return `${data.name} (${data.executionMode || data.status || 'ok'})`;
+
+    // Array of items (list results)
+    if (Array.isArray(data) && data.length > 0) {
+      const count = data.length;
+      const label = data[0].name ? 'tasks' : data[0].status ? 'jobs' : 'items';
+      return `${count} ${label} found`;
+    }
+
+    // Fallback: compact JSON, truncated
+    return JSON.stringify(data).slice(0, 200);
+  } catch {
+    return String(output).slice(0, 200);
   }
 }
 
