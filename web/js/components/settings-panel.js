@@ -37,6 +37,20 @@ export function showSettingsPanel() {
       </div>
 
       <div class="settings-section">
+        <div class="settings-section-title">SYSTEM PROMPT</div>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
+          Custom instructions appended to Claude's system prompt for all chat messages.
+        </p>
+        <textarea class="form-textarea" id="settings-system-prompt" rows="6"
+          placeholder="Add custom instructions for Claude..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn sm" id="save-system-prompt">Save</button>
+          <button class="btn sm" id="reset-system-prompt">Reset</button>
+          <span id="system-prompt-status" style="font-size:11px;color:var(--text-dim);align-self:center"></span>
+        </div>
+      </div>
+
+      <div class="settings-section">
         <div class="settings-section-title">Queue Management</div>
         <div id="settings-queues">
           <div class="loading-state"><div class="spinner"></div>Loading queues...</div>
@@ -91,6 +105,47 @@ export function showSettingsPanel() {
     const nowLight = newTheme === 'light';
     toggleSwitch.classList.toggle('active', nowLight);
     toggleLabel.textContent = nowLight ? 'On' : 'Off';
+  });
+
+  // Load system prompt
+  (async () => {
+    try {
+      const promptRes = await api.getSystemPrompt();
+      const promptEl = drawer.querySelector('#settings-system-prompt');
+      if (promptEl) promptEl.value = promptRes.prompt || '';
+    } catch {
+      // System prompt endpoint not available — leave blank
+    }
+  })();
+
+  // Save system prompt
+  drawer.querySelector('#save-system-prompt').addEventListener('click', async () => {
+    const prompt = drawer.querySelector('#settings-system-prompt').value;
+    try {
+      await api.setSystemPrompt(prompt);
+      drawer.querySelector('#system-prompt-status').textContent = 'Saved!';
+      setTimeout(() => {
+        const status = drawer.querySelector('#system-prompt-status');
+        if (status) status.textContent = '';
+      }, 2000);
+    } catch (err) {
+      drawer.querySelector('#system-prompt-status').textContent = 'Error saving';
+    }
+  });
+
+  // Reset system prompt
+  drawer.querySelector('#reset-system-prompt').addEventListener('click', async () => {
+    try {
+      await api.setSystemPrompt('');
+      drawer.querySelector('#settings-system-prompt').value = '';
+      drawer.querySelector('#system-prompt-status').textContent = 'Reset to default';
+      setTimeout(() => {
+        const status = drawer.querySelector('#system-prompt-status');
+        if (status) status.textContent = '';
+      }, 2000);
+    } catch (err) {
+      drawer.querySelector('#system-prompt-status').textContent = 'Error resetting';
+    }
   });
 
   // Load queue data

@@ -47,6 +47,14 @@
       <section id="chat-panel" aria-label="Chat">
         <div id="chat-messages" role="log" aria-live="polite" aria-label="Chat messages"></div>
         <div id="chat-input-area">
+          <button class="icon-btn plan-toggle" id="plan-mode-btn" title="Plan mode: OFF" aria-label="Toggle plan mode">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1"/>
+              <line x1="9" y1="12" x2="15" y2="12"/>
+              <line x1="9" y1="16" x2="13" y2="16"/>
+            </svg>
+          </button>
           <textarea id="chat-input" rows="1" placeholder="Message Baara..." autocomplete="off" spellcheck="false" aria-label="Chat message input"></textarea>
           <button id="send-btn" title="Send message" aria-label="Send message">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

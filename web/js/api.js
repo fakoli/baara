@@ -171,6 +171,18 @@ export const api = {
     return request(`/api/commands/${type}/${encodeURIComponent(name)}/content`);
   },
 
+  // Settings
+  async getSystemPrompt() {
+    return request('/api/settings/system-prompt');
+  },
+
+  async setSystemPrompt(prompt) {
+    return request('/api/settings/system-prompt', {
+      method: 'PUT',
+      body: JSON.stringify({ prompt }),
+    });
+  },
+
   // Chat (SSE streaming)
   async chatStream(message, onEvent, { sessionId, activeProjectId } = {}) {
     const body = { message };

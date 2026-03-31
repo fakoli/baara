@@ -14,6 +14,7 @@ let getActiveProjectId = null;
 let isStreaming = false;
 let sessionId = null;
 let lastSentMessage = null;
+let planMode = false;
 
 // Session persistence keys
 const SESSION_ID_KEY = 'baara_session_id';
@@ -167,6 +168,10 @@ async function handleSend(text) {
 }
 
 async function streamChatMessage(text) {
+  // Plan mode: prepend planning instructions
+  if (planMode) {
+    text = `[PLAN MODE] The user wants you to create a plan before taking action. Present a numbered plan of steps, then wait for approval before executing. User request: ${text}`;
+  }
 
   isStreaming = true;
   inputElement.disabled = true;
@@ -478,4 +483,25 @@ export function getSessionId() {
  */
 export function addSystemMessage(content) {
   addMessage(content, 'system');
+}
+
+/**
+ * Toggle plan mode on/off.
+ * When plan mode is active, prompts are prefixed with instructions
+ * to present a numbered plan before executing.
+ */
+export function togglePlanMode() {
+  planMode = !planMode;
+  const btn = document.querySelector('#plan-mode-btn');
+  if (btn) {
+    btn.classList.toggle('active', planMode);
+    btn.title = planMode ? 'Plan mode: ON — Click to disable' : 'Plan mode: OFF — Click to enable';
+  }
+  const input = document.querySelector('#chat-input');
+  if (input) {
+    input.placeholder = planMode
+      ? 'Describe what you want planned...'
+      : 'Message Baara...';
+    input.classList.toggle('plan-active', planMode);
+  }
 }
