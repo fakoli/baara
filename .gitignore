@@ -40,3 +40,4 @@ data/*.db-shm
 
 # Briefing output files
 data/briefings/
+test-results/
