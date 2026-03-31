@@ -2,7 +2,12 @@
 
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import {
+  query,
+  listSessions,
+  getSessionInfo,
+  renameSession,
+} from "@anthropic-ai/claude-agent-sdk";
 import type { McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import { buildSystemPrompt } from "../../chat/system-prompt.ts";
 import { gatherChatContext } from "../../chat/context.ts";
@@ -11,6 +16,48 @@ import { log } from "../../logger.ts";
 
 export function chatRoutes(baaraServer: McpSdkServerConfigWithInstance, store: Store) {
   const app = new Hono();
+
+  // --- List past chat sessions ---
+  app.get("/sessions", async (c) => {
+    try {
+      const sessions = await listSessions({ limit: 50 });
+      return c.json(sessions);
+    } catch (err) {
+      log("error", "chat", "Failed to list sessions", { error: String(err) });
+      return c.json({ error: "Could not list sessions" }, 500);
+    }
+  });
+
+  // --- Get single session info ---
+  app.get("/sessions/:id", async (c) => {
+    try {
+      const sessionId = c.req.param("id");
+      const info = await getSessionInfo(sessionId);
+      if (!info) {
+        return c.json({ error: "Session not found" }, 404);
+      }
+      return c.json(info);
+    } catch (err) {
+      log("error", "chat", "Failed to get session info", { error: String(err) });
+      return c.json({ error: "Could not get session info" }, 500);
+    }
+  });
+
+  // --- Rename a session ---
+  app.put("/sessions/:id/rename", async (c) => {
+    try {
+      const sessionId = c.req.param("id");
+      const { title } = await c.req.json<{ title: string }>();
+      if (!title || typeof title !== "string") {
+        return c.json({ error: "title is required" }, 400);
+      }
+      await renameSession(sessionId, title);
+      return c.json({ ok: true });
+    } catch (err) {
+      log("error", "chat", "Failed to rename session", { error: String(err) });
+      return c.json({ error: "Could not rename session" }, 500);
+    }
+  });
 
   app.post("/", async (c) => {
     const { message, sessionId } = await c.req.json<{

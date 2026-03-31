@@ -17,6 +17,9 @@ let lastSentMessage = null;
 const SESSION_ID_KEY = 'baara_session_id';
 const CHAT_HISTORY_KEY = 'baara_chat_history';
 
+// Multi-session state — caches DOM snapshots keyed by sessionId
+const sessionDomCache = new Map();
+
 /**
  * Initialize the chat panel.
  * @param {Object} config
@@ -356,9 +359,14 @@ function restoreSession() {
 }
 
 /**
- * Start a new chat session — clears history and session ID.
+ * Start a new chat session — saves current session to cache and starts fresh.
  */
 export function startNewChat() {
+  // Save current session DOM before clearing
+  if (sessionId && messagesContainer) {
+    sessionDomCache.set(sessionId, messagesContainer.innerHTML);
+  }
+
   sessionId = null;
   sessionStorage.removeItem(SESSION_ID_KEY);
   sessionStorage.removeItem(CHAT_HISTORY_KEY);
@@ -368,6 +376,53 @@ export function startNewChat() {
     inputElement.style.height = 'auto';
     inputElement.focus();
   }
+}
+
+/**
+ * Switch to a different session.
+ * @param {string} newSessionId — session ID to switch to
+ */
+export function switchSession(newSessionId) {
+  if (newSessionId === sessionId) return;
+
+  // Save current session DOM
+  if (sessionId && messagesContainer) {
+    sessionDomCache.set(sessionId, messagesContainer.innerHTML);
+  }
+
+  // Load the target session DOM (from cache or show empty)
+  const cached = sessionDomCache.get(newSessionId);
+  if (cached) {
+    messagesContainer.innerHTML = cached;
+    scrollToBottom();
+  } else {
+    // No cached DOM — show a placeholder indicating we resumed a past session
+    messagesContainer.innerHTML = `
+      <div class="chat-welcome">
+        <div class="welcome-icon">B</div>
+        <h3>Session resumed</h3>
+        <p class="subtitle">Send a message to continue this conversation.</p>
+      </div>
+    `;
+  }
+
+  sessionId = newSessionId;
+  sessionStorage.setItem(SESSION_ID_KEY, sessionId);
+  saveChatHistory();
+
+  if (inputElement) {
+    inputElement.value = '';
+    inputElement.style.height = 'auto';
+    inputElement.focus();
+  }
+}
+
+/**
+ * Get the current session ID.
+ * @returns {string|null}
+ */
+export function getSessionId() {
+  return sessionId;
 }
 
 /**

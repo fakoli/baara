@@ -4,6 +4,7 @@ import * as chat from './chat.js';
 import * as contextPanel from './components/context-panel.js';
 import * as tabBar from './components/tab-bar.js';
 import * as triageBadge from './components/triage-badge.js';
+import * as chatSessions from './components/chat-sessions.js';
 import { showCreateTaskModal } from './components/create-task-modal.js';
 import { showSettingsPanel } from './components/settings-panel.js';
 
@@ -29,6 +30,7 @@ const contextPanelEl = document.getElementById('context-panel');
 const resizeHandle = document.getElementById('resize-handle');
 const createTaskBtn = document.getElementById('create-task-btn');
 const newChatBtn = document.getElementById('new-chat-btn');
+const sessionsBtn = document.getElementById('sessions-btn');
 const settingsBtn = document.getElementById('settings-btn');
 
 // --- Render Loop ---
@@ -206,9 +208,34 @@ function init() {
   // Create Task button
   createTaskBtn.addEventListener('click', handleCreateTask);
 
-  // New Chat button
+  // Chat sessions drawer — init
+  chatSessions.init({
+    onSwitchSession: (sessionId) => {
+      chat.switchSession(sessionId);
+      chatSessions.setActiveSession(sessionId);
+    },
+    onNewChat: () => {
+      chat.startNewChat();
+      chatSessions.setActiveSession(null);
+    },
+    getCurrentSessionId: () => chat.getSessionId(),
+  });
+
+  // New Chat button — save current session, start fresh
   newChatBtn.addEventListener('click', () => {
     chat.startNewChat();
+    chatSessions.setActiveSession(null);
+  });
+
+  // Double-click or long-press on the new-chat button opens sessions drawer
+  newChatBtn.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    chatSessions.toggle(chat.getSessionId());
+  });
+
+  // Sessions button — opens the drawer
+  sessionsBtn.addEventListener('click', () => {
+    chatSessions.toggle(chat.getSessionId());
   });
 
   // Settings button
@@ -222,11 +249,17 @@ function init() {
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'N') {
       e.preventDefault();
       chat.startNewChat();
+      chatSessions.setActiveSession(null);
     }
     // Cmd+Shift+O — toggle panel
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'O') {
       e.preventDefault();
       togglePanel();
+    }
+    // Cmd+Shift+H — toggle sessions drawer
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'H') {
+      e.preventDefault();
+      chatSessions.toggle(chat.getSessionId());
     }
   });
 
@@ -256,7 +289,10 @@ function init() {
       !e.target.closest('select') &&
       !e.target.closest('.modal-overlay') &&
       !e.target.closest('.settings-overlay') &&
-      !e.target.closest('.settings-drawer')
+      !e.target.closest('.settings-drawer') &&
+      !e.target.closest('.chat-sessions-overlay') &&
+      !e.target.closest('.chat-sessions-drawer') &&
+      !e.target.closest('.session-context-menu')
     ) {
       chatInput.focus();
     }

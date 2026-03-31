@@ -104,6 +104,22 @@ export const api = {
     });
   },
 
+  // Chat Sessions
+  listChatSessions() {
+    return request('/api/chat/sessions');
+  },
+
+  getChatSession(id) {
+    return request(`/api/chat/sessions/${id}`);
+  },
+
+  renameChatSession(id, title) {
+    return request(`/api/chat/sessions/${id}/rename`, {
+      method: 'PUT',
+      body: JSON.stringify({ title }),
+    });
+  },
+
   // Chat (SSE streaming)
   async chatStream(message, onEvent, { sessionId } = {}) {
     const body = { message };
