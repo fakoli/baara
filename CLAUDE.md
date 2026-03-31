@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Baara ("work" in Bambara) — a delayed task execution system built on the Claude Agent SDK. Three interfaces (chat-first web UI, CLI, cron scheduler) share a single service layer backed by SQLite.
+Baara ("work" in Mandinka) — a delayed task execution system built on the Claude Agent SDK. Three interfaces (chat-first web UI, CLI, cron scheduler) share a single service layer backed by SQLite.
 
 ## Commands
 
